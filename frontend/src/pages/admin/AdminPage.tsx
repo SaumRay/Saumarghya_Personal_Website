@@ -1,0 +1,34 @@
+import { useState } from "react";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
+import AdminLogin from "./AdminLogin";
+import { AdminLayout, AdminTab } from "./AdminLayout";
+import { AdminOverview } from "./tabs/AdminOverview";
+import { AdminProjects } from "./tabs/AdminProjects";
+import { AdminMessages } from "./tabs/AdminMessages";
+import { AdminGallery } from "./tabs/AdminGallery";
+import { AdminNotes } from "./tabs/AdminNotes";
+import { AdminProfile } from "./tabs/AdminProfile";
+
+export default function AdminPage() {
+  const { isAuthed } = useAdminAuth();
+  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
+
+  if (!isAuthed) return <AdminLogin />;
+
+  const renderTab = () => {
+    switch (activeTab) {
+      case "overview":  return <AdminOverview />;
+      case "projects":  return <AdminProjects />;
+      case "messages":  return <AdminMessages />;
+      case "gallery":   return <AdminGallery />;
+      case "notes":     return <AdminNotes />;
+      case "profile":   return <AdminProfile />;
+    }
+  };
+
+  return (
+    <AdminLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {renderTab()}
+    </AdminLayout>
+  );
+}
