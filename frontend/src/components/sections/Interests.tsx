@@ -1,7 +1,10 @@
 import { motion } from "framer-motion";
 import { Dumbbell, MapPin, Music, Brain, Flame, BookOpen, Users } from "lucide-react";
+import { useLocation } from "wouter";
 
 export function Interests() {
+  const [_, setLocation] = useLocation();
+
   return (
     <section id="interests" className="py-24 relative bg-black/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -24,7 +27,8 @@ export function Interests() {
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="md:col-span-2 lg:col-span-2 row-span-2 rounded-3xl overflow-hidden relative group"
+            className="md:col-span-2 lg:col-span-2 row-span-2 rounded-3xl overflow-hidden relative group cursor-pointer"
+            onClick={() => setLocation("/interests?category=fitness")}
           >
             <img 
               src={`${import.meta.env.BASE_URL}photo-gym.png`} 
@@ -60,7 +64,8 @@ export function Interests() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="md:col-span-1 lg:col-span-2 row-span-2 rounded-3xl overflow-hidden relative group"
+            className="md:col-span-1 lg:col-span-2 row-span-2 rounded-3xl overflow-hidden relative group cursor-pointer"
+            onClick={() => setLocation("/interests?category=traveller")}
           >
             <img 
               src={`${import.meta.env.BASE_URL}photo-travel.png`} 

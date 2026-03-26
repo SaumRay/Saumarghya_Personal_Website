@@ -4,9 +4,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
+import Gallery from "@/pages/Gallery";
 import AdminPage from "@/pages/admin/AdminPage";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AdminAuthProvider } from "@/hooks/use-admin-auth";
+import InterestCategory from "@/pages/InterestCategory";
+import Stats from "@/pages/Stats";
 
 const queryClient = new QueryClient();
 
@@ -14,6 +17,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/gallery" component={Gallery} />
+      <Route path="/interests" component={InterestCategory} />
+      <Route path="/stats" component={Stats} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

@@ -14,6 +14,7 @@ import contactRoutes from "./routes/contact";
 import authRoutes from "./routes/auth";
 import galleryRoutes from "./routes/gallery";
 import notesRoutes from "./routes/notes";
+import categoryDetailRoutes from "./routes/categoryDetails";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,6 +40,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/contact", contactLimiter, contactRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/notes", notesRoutes);
+app.use("/api/category-details", categoryDetailRoutes);
 
 app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found" }));
 

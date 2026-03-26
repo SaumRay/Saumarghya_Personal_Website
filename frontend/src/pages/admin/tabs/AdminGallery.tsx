@@ -58,16 +58,54 @@ export function AdminGallery() {
   };
 
   const uploadImages = async () => {
+    console.log("uploadImages called, activeGallery:", activeGallery, "uploadFiles:", uploadFiles.length);
     if (!activeGallery || uploadFiles.length === 0) return;
     setUploading(true);
-    const fd = new FormData();
-    uploadFiles.forEach((f) => fd.append("images", f));
-    const res = await fetch(`${API_BASE}/api/gallery/${activeGallery._id}/images`, { method: "POST", headers, body: fd });
-    const data = await res.json();
-    if (data.gallery) setActiveGallery(data.gallery);
-    setUploadFiles([]);
-    fetchGalleries();
-    setUploading(false);
+    console.log("Starting upload for gallery", activeGallery._id, "with", uploadFiles.length, "files");
+
+    try {
+      const fd = new FormData();
+      uploadFiles.forEach((f) => fd.append("images", f));
+      console.log("FormData created");
+
+      // Use timeout to avoid hanging forever
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
+      console.log("Sending POST to", `${API_BASE}/api/gallery/${activeGallery._id}/images`);
+      const res = await fetch(`${API_BASE}/api/gallery/${activeGallery._id}/images`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }, // Note: NO Content-Type for FormData
+        body: fd,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      console.log("Response received:", res.status);
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Upload failed:", data.message || `HTTP ${res.status}`);
+        alert(`Upload failed: ${data.message || "Check console for details"}`);
+        setUploading(false);
+        return;
+      }
+
+      if (data.gallery) setActiveGallery(data.gallery);
+      setUploadFiles([]);
+      fetchGalleries();
+      alert("✅ Upload successful!");
+    } catch (error: any) {
+      if (error.name === "AbortError") {
+        alert("❌ Upload timeout (30s). Check file size and internet.");
+      } else {
+        console.error("Upload error:", error);
+        alert(`❌ Upload error: ${error.message}`);
+      }
+    } finally {
+      setUploading(false);
+    }
   };
 
   const deleteImage = async (key: string) => {

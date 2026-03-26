@@ -8,6 +8,7 @@ import { AdminMessages } from "./tabs/AdminMessages";
 import { AdminGallery } from "./tabs/AdminGallery";
 import { AdminNotes } from "./tabs/AdminNotes";
 import { AdminProfile } from "./tabs/AdminProfile";
+import { AdminCategoryDetails } from "./tabs/AdminCategoryDetails";
 
 export default function AdminPage() {
   const { isAuthed } = useAdminAuth();
@@ -21,6 +22,7 @@ export default function AdminPage() {
       case "projects":  return <AdminProjects />;
       case "messages":  return <AdminMessages />;
       case "gallery":   return <AdminGallery />;
+      case "categoryDetails": return <AdminCategoryDetails />;
       case "notes":     return <AdminNotes />;
       case "profile":   return <AdminProfile />;
     }
