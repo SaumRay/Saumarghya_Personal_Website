@@ -11,6 +11,7 @@ import { AdminAuthProvider } from "@/hooks/use-admin-auth";
 import InterestCategory from "@/pages/InterestCategory";
 import Stats from "@/pages/Stats";
 import FamilyFriends from "@/pages/FamilyFriends";
+import Music from "./pages/Music";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/interests" component={InterestCategory} />
       <Route path="/stats" component={Stats} />
       <Route path="/family-friends" component={FamilyFriends} />
+      <Route path="/music" component={Music} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

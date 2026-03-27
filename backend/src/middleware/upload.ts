@@ -41,3 +41,30 @@ export const uploadProjectImage = multer({
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
 });
+
+const allowedAudioMimeTypes = [
+  "audio/mpeg", "audio/mp3", "audio/mp4", "audio/m4a",
+  "audio/wav", "audio/ogg", "audio/aac", "audio/x-m4a"
+];
+
+const audioFileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (allowedAudioMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only audio files are allowed (mp3, m4a, wav, ogg, aac)"));
+  }
+};
+
+export const uploadAudio = multer({
+  storage: multerS3({
+    s3,
+    bucket: S3_BUCKET(),
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (_req, file, cb) => {
+      const ext = file.originalname.split(".").pop() || "mp3";
+      cb(null, `music/audio/${uuidv4()}.${ext}`);
+    },
+  }),
+  fileFilter: audioFileFilter,
+  limits: { fileSize: 20 * 1024 * 1024 },
+});

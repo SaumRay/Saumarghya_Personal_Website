@@ -10,6 +10,7 @@ import { AdminNotes } from "./tabs/AdminNotes";
 import { AdminProfile } from "./tabs/AdminProfile";
 import { AdminCategoryDetails } from "./tabs/AdminCategoryDetails";
 import { AdminFamilyFriends } from "./tabs/AdminFamilyFriends";
+import AdminMusic from "./tabs/AdminMusic";
 
 export default function AdminPage() {
   const { isAuthed } = useAdminAuth();
@@ -19,14 +20,15 @@ export default function AdminPage() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case "overview":  return <AdminOverview />;
-      case "projects":  return <AdminProjects />;
-      case "messages":  return <AdminMessages />;
-      case "gallery":   return <AdminGallery />;
+      case "overview":        return <AdminOverview />;
+      case "projects":        return <AdminProjects />;
+      case "messages":        return <AdminMessages />;
+      case "gallery":         return <AdminGallery />;
       case "categoryDetails": return <AdminCategoryDetails />;
-      case "familyFriends": return <AdminFamilyFriends />;
-      case "notes":     return <AdminNotes />;
-      case "profile":   return <AdminProfile />;
+      case "familyFriends":   return <AdminFamilyFriends />;
+      case "notes":           return <AdminNotes />;
+      case "profile":         return <AdminProfile />;
+      case "music":           return <AdminMusic />;
     }
   };
 

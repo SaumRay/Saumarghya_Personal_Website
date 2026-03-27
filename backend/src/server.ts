@@ -15,6 +15,7 @@ import authRoutes from "./routes/auth";
 import galleryRoutes from "./routes/gallery";
 import notesRoutes from "./routes/notes";
 import categoryDetailRoutes from "./routes/categoryDetails";
+import musicRoutes from "./routes/music";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -57,6 +58,7 @@ app.use("/api/contact", contactLimiter, contactRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/category-details", categoryDetailRoutes);
+app.use("/api/music", musicRoutes);
 
 app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found" }));
 
