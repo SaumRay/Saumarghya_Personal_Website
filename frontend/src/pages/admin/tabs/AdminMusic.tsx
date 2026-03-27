@@ -10,6 +10,14 @@ interface MusicVideo {
   order: number;
 }
 
+interface MusicVideoFile {
+  _id: string;
+  title: string;
+  description: string;
+  url: string;
+  order: number;
+}
+
 interface AudioTrack {
   _id: string;
   title: string;
@@ -22,16 +30,21 @@ interface AudioTrack {
 export default function AdminMusic() {
   const { token } = useAdminAuth();
   const [tab, setTab] = useState<"videos" | "audio">("videos");
+  const [videoSubTab, setVideoSubTab] = useState<"instagram" | "upload">("instagram");
 
   const [videos, setVideos] = useState<MusicVideo[]>([]);
+  const [videoFiles, setVideoFiles] = useState<MusicVideoFile[]>([]);
   const [tracks, setTracks] = useState<AudioTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
   const [videoForm, setVideoForm] = useState({ title: "", description: "", instagramUrl: "", order: "0" });
+  const [videoFileForm, setVideoFileForm] = useState({ title: "", description: "", order: "0" });
   const [audioForm, setAudioForm] = useState({ title: "", description: "", duration: "", order: "0" });
+
   const audioFileRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -39,9 +52,11 @@ export default function AdminMusic() {
     setLoading(true);
     Promise.all([
       fetch(`${API_BASE}/api/music/videos`).then(r => r.json()),
+      fetch(`${API_BASE}/api/music/videofiles`).then(r => r.json()),
       fetch(`${API_BASE}/api/music/audio`).then(r => r.json()),
-    ]).then(([vd, ad]) => {
+    ]).then(([vd, vf, ad]) => {
       if (vd.success) setVideos(vd.data || []);
+      if (vf.success) setVideoFiles(vf.data || []);
       if (ad.success) setTracks(ad.data || []);
     }).finally(() => setLoading(false));
   }, []);
@@ -72,6 +87,44 @@ export default function AdminMusic() {
     try {
       await fetch(`${API_BASE}/api/music/videos/${id}`, { method: "DELETE", headers });
       setVideos(prev => prev.filter(v => v._id !== id));
+      flash("Deleted");
+    } catch { flash("Error deleting"); }
+  };
+
+  const uploadVideoFile = async () => {
+    const file = videoFileRef.current?.files?.[0];
+    if (!file) return flash("Please select a video file");
+    if (!videoFileForm.title) return flash("Title is required");
+
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append("video", file);
+      fd.append("title", videoFileForm.title);
+      fd.append("description", videoFileForm.description);
+      fd.append("order", videoFileForm.order);
+
+      const res = await fetch(`${API_BASE}/api/music/videofiles`, {
+        method: "POST",
+        headers,
+        body: fd,
+      });
+      const d = await res.json();
+      if (d.success) {
+        setVideoFiles(prev => [d.data, ...prev]);
+        setVideoFileForm({ title: "", description: "", order: "0" });
+        if (videoFileRef.current) videoFileRef.current.value = "";
+        flash("Video uploaded!");
+      } else flash(d.message || "Failed");
+    } catch { flash("Error uploading video"); }
+    setSaving(false);
+  };
+
+  const deleteVideoFile = async (id: string) => {
+    if (!confirm("Delete this video?")) return;
+    try {
+      await fetch(`${API_BASE}/api/music/videofiles/${id}`, { method: "DELETE", headers });
+      setVideoFiles(prev => prev.filter(v => v._id !== id));
       flash("Deleted");
     } catch { flash("Error deleting"); }
   };
@@ -125,7 +178,7 @@ export default function AdminMusic() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Main Tabs */}
       <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-xl border border-white/10 w-fit">
         <button
           onClick={() => setTab("videos")}
@@ -148,78 +201,182 @@ export default function AdminMusic() {
       {/* Videos Tab */}
       {tab === "videos" && (
         <div className="space-y-6">
-          {/* Add form */}
-          <div className="p-4 rounded-2xl border border-white/10 bg-white/5 space-y-3">
-            <h2 className="text-sm font-semibold text-foreground/70 flex items-center gap-2">
-              <Link className="w-4 h-4" /> Add Instagram Reel
-            </h2>
-            <input
-              value={videoForm.title}
-              onChange={e => setVideoForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="Title (e.g. Raag Yaman)"
-              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50"
-            />
-            <input
-              value={videoForm.instagramUrl}
-              onChange={e => setVideoForm(f => ({ ...f, instagramUrl: e.target.value }))}
-              placeholder="Instagram Reel URL (https://www.instagram.com/reel/...)"
-              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50"
-            />
-            <textarea
-              value={videoForm.description}
-              onChange={e => setVideoForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Description (optional)"
-              rows={2}
-              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 resize-none"
-            />
-            <input
-              type="number"
-              value={videoForm.order}
-              onChange={e => setVideoForm(f => ({ ...f, order: e.target.value }))}
-              placeholder="Order (0 = first)"
-              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50"
-            />
+
+          {/* Video sub-tabs */}
+          <div className="flex gap-2">
             <button
-              onClick={addVideo}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-background text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-all"
+              onClick={() => setVideoSubTab("instagram")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+                videoSubTab === "instagram"
+                  ? "bg-primary/20 text-primary border-primary/20"
+                  : "text-foreground/50 border-white/10 hover:text-foreground"
+              }`}
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Add Video
+              <Link className="w-4 h-4" /> Instagram Reel
+            </button>
+            <button
+              onClick={() => setVideoSubTab("upload")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+                videoSubTab === "upload"
+                  ? "bg-primary/20 text-primary border-primary/20"
+                  : "text-foreground/50 border-white/10 hover:text-foreground"
+              }`}
+            >
+              <Upload className="w-4 h-4" /> Upload Video
             </button>
           </div>
 
-          {/* List */}
-          {loading ? (
-            <div className="text-foreground/40 text-sm">Loading...</div>
-          ) : videos.length === 0 ? (
-            <div className="text-foreground/40 text-sm p-6 text-center border border-white/10 rounded-2xl">No videos yet.</div>
-          ) : (
-            <div className="space-y-3">
-              {videos.map(v => (
-                <div key={v._id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-white/10 bg-white/5">
-                  <div className="min-w-0">
-                    <p className="text-foreground font-medium text-sm truncate">{v.title}</p>
-                    <p className="text-foreground/40 text-xs truncate mt-0.5">{v.instagramUrl}</p>
-                    {v.description && <p className="text-foreground/50 text-xs mt-1">{v.description}</p>}
-                  </div>
-                  <button
-                    onClick={() => deleteVideo(v._id)}
-                    className="text-red-400 hover:text-red-300 flex-shrink-0 p-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+          {/* Instagram Reel form */}
+          {videoSubTab === "instagram" && (
+            <div className="p-4 rounded-2xl border border-white/10 bg-white/5 space-y-3">
+              <h2 className="text-sm font-semibold text-foreground/70 flex items-center gap-2">
+                <Link className="w-4 h-4" /> Add Instagram Reel
+              </h2>
+              <input
+                value={videoForm.title}
+                onChange={e => setVideoForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="Title (e.g. Raag Yaman)"
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50"
+              />
+              <input
+                value={videoForm.instagramUrl}
+                onChange={e => setVideoForm(f => ({ ...f, instagramUrl: e.target.value }))}
+                placeholder="Instagram Reel URL (https://www.instagram.com/reel/...)"
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50"
+              />
+              <textarea
+                value={videoForm.description}
+                onChange={e => setVideoForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Description (optional)"
+                rows={2}
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 resize-none"
+              />
+              <input
+                type="number"
+                value={videoForm.order}
+                onChange={e => setVideoForm(f => ({ ...f, order: e.target.value }))}
+                placeholder="Order (0 = first)"
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50"
+              />
+              <button
+                onClick={addVideo}
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-background text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-all"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Add Video
+              </button>
+            </div>
+          )}
+
+          {/* Local video upload form */}
+          {videoSubTab === "upload" && (
+            <div className="p-4 rounded-2xl border border-white/10 bg-white/5 space-y-3">
+              <h2 className="text-sm font-semibold text-foreground/70 flex items-center gap-2">
+                <Upload className="w-4 h-4" /> Upload Video File
+              </h2>
+              <input
+                value={videoFileForm.title}
+                onChange={e => setVideoFileForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="Title (e.g. Raag Yaman Performance)"
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50"
+              />
+              <textarea
+                value={videoFileForm.description}
+                onChange={e => setVideoFileForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Description (optional)"
+                rows={2}
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 resize-none"
+              />
+              <div className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-foreground/60">
+                <input
+                  ref={videoFileRef}
+                  type="file"
+                  accept="video/*,.mp4,.mov,.avi,.mkv,.webm"
+                  className="w-full text-foreground/70 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-primary/20 file:text-primary file:text-xs file:cursor-pointer"
+                />
+              </div>
+              <input
+                type="number"
+                value={videoFileForm.order}
+                onChange={e => setVideoFileForm(f => ({ ...f, order: e.target.value }))}
+                placeholder="Order (0 = first)"
+                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:border-primary/50"
+              />
+              <button
+                onClick={uploadVideoFile}
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-background text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-all"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Upload Video
+              </button>
+            </div>
+          )}
+
+          {/* Instagram videos list */}
+          {videoSubTab === "instagram" && (
+            <div>
+              {loading ? (
+                <div className="text-foreground/40 text-sm">Loading...</div>
+              ) : videos.length === 0 ? (
+                <div className="text-foreground/40 text-sm p-6 text-center border border-white/10 rounded-2xl">No Instagram reels yet.</div>
+              ) : (
+                <div className="space-y-3">
+                  {videos.map(v => (
+                    <div key={v._id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-white/10 bg-white/5">
+                      <div className="min-w-0">
+                        <p className="text-foreground font-medium text-sm truncate">{v.title}</p>
+                        <p className="text-foreground/40 text-xs truncate mt-0.5">{v.instagramUrl}</p>
+                        {v.description && <p className="text-foreground/50 text-xs mt-1">{v.description}</p>}
+                      </div>
+                      <button onClick={() => deleteVideo(v._id)} className="text-red-400 hover:text-red-300 flex-shrink-0 p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+            </div>
+          )}
+
+          {/* Uploaded videos list */}
+          {videoSubTab === "upload" && (
+            <div>
+              {loading ? (
+                <div className="text-foreground/40 text-sm">Loading...</div>
+              ) : videoFiles.length === 0 ? (
+                <div className="text-foreground/40 text-sm p-6 text-center border border-white/10 rounded-2xl">No uploaded videos yet.</div>
+              ) : (
+                <div className="space-y-3">
+                  {videoFiles.map(v => (
+                    <div key={v._id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-white/10 bg-white/5">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-foreground font-medium text-sm truncate">{v.title}</p>
+                        {v.description && <p className="text-foreground/50 text-xs mt-0.5">{v.description}</p>}
+                        {/* Mini video preview */}
+                        <video
+                          src={v.url}
+                          controls
+                          className="mt-2 w-full max-w-xs rounded-lg border border-white/10"
+                          style={{ maxHeight: "120px" }}
+                        />
+                      </div>
+                      <button onClick={() => deleteVideoFile(v._id)} className="text-red-400 hover:text-red-300 flex-shrink-0 p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {/* Audio Tab */}
+      {/* Audio Tab — unchanged */}
       {tab === "audio" && (
         <div className="space-y-6">
-          {/* Upload form */}
           <div className="p-4 rounded-2xl border border-white/10 bg-white/5 space-y-3">
             <h2 className="text-sm font-semibold text-foreground/70 flex items-center gap-2">
               <Upload className="w-4 h-4" /> Upload Audio Track
@@ -268,7 +425,6 @@ export default function AdminMusic() {
             </button>
           </div>
 
-          {/* List */}
           {loading ? (
             <div className="text-foreground/40 text-sm">Loading...</div>
           ) : tracks.length === 0 ? (
@@ -282,10 +438,7 @@ export default function AdminMusic() {
                     {t.description && <p className="text-foreground/50 text-xs mt-0.5">{t.description}</p>}
                     {t.duration && <p className="text-foreground/30 text-xs mt-0.5">{t.duration}</p>}
                   </div>
-                  <button
-                    onClick={() => deleteAudio(t._id)}
-                    className="text-red-400 hover:text-red-300 flex-shrink-0 p-1"
-                  >
+                  <button onClick={() => deleteAudio(t._id)} className="text-red-400 hover:text-red-300 flex-shrink-0 p-1">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

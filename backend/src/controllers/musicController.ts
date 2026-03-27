@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { MusicVideo, AudioTrack } from "../models/Music";
 import { s3, S3_BUCKET } from "../config/s3";
+import { MusicVideo, MusicVideoFile, AudioTrack } from "../models/Music";
 
 export const getVideos = async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -104,6 +104,55 @@ export const deleteAudioTrack = async (req: Request, res: Response): Promise<voi
     await s3.send(new DeleteObjectCommand({ Bucket: S3_BUCKET(), Key: track.key }));
     await track.deleteOne();
     res.json({ success: true, message: "Track deleted" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
+
+export const getVideoFiles = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const videos = await MusicVideoFile.find().sort({ order: 1, createdAt: -1 });
+    res.json({ success: true, data: videos });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
+
+export const uploadVideoFile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const file = req.file as Express.MulterS3.File;
+    if (!file) {
+      res.status(400).json({ success: false, message: "No file uploaded" });
+      return;
+    }
+
+    const { title, description, order } = req.body;
+    if (!title) {
+      res.status(400).json({ success: false, message: "Title is required" });
+      return;
+    }
+
+    const video = await MusicVideoFile.create({
+      title,
+      description: description || "",
+      key: file.key,
+      url: file.location,
+      order: order ? parseInt(order) : 0,
+    });
+
+    res.status(201).json({ success: true, data: video });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
+
+export const deleteVideoFile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const video = await MusicVideoFile.findById(req.params.id);
+    if (!video) { res.status(404).json({ success: false, message: "Video not found" }); return; }
+    await s3.send(new DeleteObjectCommand({ Bucket: S3_BUCKET(), Key: video.key }));
+    await video.deleteOne();
+    res.json({ success: true, message: "Video deleted" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }

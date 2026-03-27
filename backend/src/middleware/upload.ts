@@ -45,7 +45,7 @@ export const uploadProjectImage = multer({
 const allowedAudioMimeTypes = [
   "audio/mpeg", "audio/mp3", "audio/mp4", "audio/m4a",
   "audio/wav", "audio/ogg", "audio/aac", "audio/x-m4a",
-  "video/mp4" 
+  "video/mp4"
 ];
 
 const audioFileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -68,4 +68,32 @@ export const uploadAudio = multer({
   }),
   fileFilter: audioFileFilter,
   limits: { fileSize: 20 * 1024 * 1024 },
+});
+
+// ── Video upload ──────────────────────────────────────────
+const allowedVideoMimeTypes = [
+  "video/mp4", "video/quicktime", "video/x-msvideo",
+  "video/x-matroska", "video/webm", "video/mpeg"
+];
+
+const videoFileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (allowedVideoMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only video files are allowed (mp4, mov, avi, mkv, webm)"));
+  }
+};
+
+export const uploadVideo = multer({
+  storage: multerS3({
+    s3,
+    bucket: S3_BUCKET(),
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (_req, file, cb) => {
+      const ext = file.originalname.split(".").pop() || "mp4";
+      cb(null, `music/videos/${uuidv4()}.${ext}`);
+    },
+  }),
+  fileFilter: videoFileFilter,
+  limits: { fileSize: 100 * 1024 * 1024 },
 });

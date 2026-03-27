@@ -9,6 +9,15 @@ export interface IMusicVideo extends Document {
   createdAt: Date;
 }
 
+export interface IMusicVideoFile extends Document {
+  title: string;
+  description: string;
+  key: string;
+  url: string;
+  order: number;
+  createdAt: Date;
+}
+
 export interface IAudioTrack extends Document {
   title: string;
   description: string;
@@ -27,6 +36,15 @@ const MusicVideoSchema = new Schema({
   order: { type: Number, default: 0 },
 }, { timestamps: true });
 
+// New schema for locally uploaded videos
+const MusicVideoFileSchema = new Schema({
+  title: { type: String, required: true },
+  description: { type: String, default: "" },
+  key: { type: String, required: true },
+  url: { type: String, required: true },
+  order: { type: Number, default: 0 },
+}, { timestamps: true });
+
 const AudioTrackSchema = new Schema({
   title: { type: String, required: true },
   description: { type: String, default: "" },
@@ -37,4 +55,5 @@ const AudioTrackSchema = new Schema({
 }, { timestamps: true });
 
 export const MusicVideo = mongoose.model<IMusicVideo>("MusicVideo", MusicVideoSchema);
+export const MusicVideoFile = mongoose.model<IMusicVideoFile>("MusicVideoFile", MusicVideoFileSchema);
 export const AudioTrack = mongoose.model<IAudioTrack>("AudioTrack", AudioTrackSchema);
