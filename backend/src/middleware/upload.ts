@@ -44,7 +44,8 @@ export const uploadProjectImage = multer({
 
 const allowedAudioMimeTypes = [
   "audio/mpeg", "audio/mp3", "audio/mp4", "audio/m4a",
-  "audio/wav", "audio/ogg", "audio/aac", "audio/x-m4a"
+  "audio/wav", "audio/ogg", "audio/aac", "audio/x-m4a",
+  "video/mp4" 
 ];
 
 const audioFileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {

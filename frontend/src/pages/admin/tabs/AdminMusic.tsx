@@ -247,7 +247,7 @@ export default function AdminMusic() {
               <input
                 ref={audioFileRef}
                 type="file"
-                accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac"
+                accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.mp4,video/mp4"
                 className="w-full text-foreground/70 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-primary/20 file:text-primary file:text-xs file:cursor-pointer"
               />
             </div>
