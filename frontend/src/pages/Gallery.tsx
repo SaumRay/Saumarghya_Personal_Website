@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { API_BASE } from "@/hooks/use-admin-auth";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ImageOff } from "lucide-react";
 
 type GalleryCategory =
   | "traveller"
@@ -34,6 +34,7 @@ export default function Gallery() {
   const [galleries, setGalleries] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const category = new URLSearchParams(window.location.search).get("category") as GalleryCategory;
 
@@ -65,6 +66,10 @@ export default function Gallery() {
   }, [category]);
 
   const galleryImages = galleries.flatMap((g) => g.images);
+
+  const handleImageError = (key: string) => {
+    setFailedImages((prev) => new Set(prev).add(key));
+  };
 
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-background">
@@ -101,11 +106,22 @@ export default function Gallery() {
               key={img.key}
               className="aspect-square rounded-2xl overflow-hidden border border-white/10 bg-foreground/5"
             >
-              <img
-                src={img.url}
-                alt={img.caption || "Gallery image"}
-                className="w-full h-full object-cover"
-              />
+              {failedImages.has(img.key) ? (
+                // ✅ Fallback UI when image fails to load
+                <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-foreground/30">
+                  <ImageOff className="w-6 h-6" />
+                  <span className="text-xs">Failed to load</span>
+                </div>
+              ) : (
+                <img
+                  src={img.url}
+                  alt={img.caption || "Gallery image"}
+                  loading="lazy"                          // ✅ lazy load for mobile performance
+                  crossOrigin="anonymous"                 // ✅ fixes mobile CORS on S3
+                  className="w-full h-full object-cover"
+                  onError={() => handleImageError(img.key)}  // ✅ catch broken images
+                />
+              )}
             </div>
           ))}
         </div>
