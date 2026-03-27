@@ -10,6 +10,14 @@ interface MusicVideo {
   order: number;
 }
 
+interface MusicVideoFile {
+  _id: string;
+  title: string;
+  description: string;
+  url: string;
+  order: number;
+}
+
 interface AudioTrack {
   _id: string;
   title: string;
@@ -113,7 +121,6 @@ function AudioPlayer({ track, isActive, onPlay }: {
         onEnded={handleEnded}
         onLoadedMetadata={handleTimeUpdate}
       />
-
       <div className="flex items-center gap-4">
         <button
           onClick={togglePlay}
@@ -125,13 +132,11 @@ function AudioPlayer({ track, isActive, onPlay }: {
         >
           {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
         </button>
-
         <div className="flex-1 min-w-0">
           <p className="text-white font-medium text-sm truncate">{track.title}</p>
           {track.description && (
             <p className="text-white/50 text-xs truncate mt-0.5">{track.description}</p>
           )}
-
           <div className="mt-2 flex items-center gap-2">
             <div
               className="flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer relative"
@@ -152,21 +157,47 @@ function AudioPlayer({ track, isActive, onPlay }: {
   );
 }
 
+// New component for locally uploaded video player
+function VideoFilePlayer({ video }: { video: MusicVideoFile }) {
+  return (
+    <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5">
+      <video
+        src={video.url}
+        controls
+        className="w-full"
+        style={{ maxHeight: "400px" }}
+      />
+      <div className="p-4">
+        <h2 className="text-white font-semibold">{video.title}</h2>
+        {video.description && (
+          <p className="text-white/50 text-sm mt-1">{video.description}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Music() {
   const [tab, setTab] = useState<"videos" | "audio">("videos");
+  const [videoSubTab, setVideoSubTab] = useState<"instagram" | "uploaded">("instagram");
+
   const [videos, setVideos] = useState<MusicVideo[]>([]);
+  const [videoFiles, setVideoFiles] = useState<MusicVideoFile[]>([]);
   const [tracks, setTracks] = useState<AudioTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTrack, setActiveTrack] = useState<string | null>(null);
   const [videoIndex, setVideoIndex] = useState(0);
+  const [videoFileIndex, setVideoFileIndex] = useState(0);
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
       fetch(`${API_BASE}/api/music/videos`).then(r => r.json()),
+      fetch(`${API_BASE}/api/music/videofiles`).then(r => r.json()),  // 👈 new
       fetch(`${API_BASE}/api/music/audio`).then(r => r.json()),
-    ]).then(([vd, ad]) => {
+    ]).then(([vd, vf, ad]) => {
       if (vd.success) setVideos(vd.data || []);
+      if (vf.success) setVideoFiles(vf.data || []);
       if (ad.success) setTracks(ad.data || []);
     }).catch(console.error)
       .finally(() => setLoading(false));
@@ -181,7 +212,7 @@ export default function Music() {
           <p className="text-foreground/50 text-sm">Original recordings & performances</p>
         </div>
 
-        {/* Tabs */}
+        {/* Main Tabs */}
         <div className="flex gap-2 mb-8 p-1 bg-white/5 rounded-xl border border-white/10 w-fit">
           <button
             onClick={() => setTab("videos")}
@@ -209,57 +240,137 @@ export default function Music() {
 
         {/* Videos Tab */}
         {!loading && tab === "videos" && (
-          <div>
-            {videos.length === 0 ? (
-              <div className="text-foreground/40 text-sm p-8 text-center border border-white/10 rounded-2xl">
-                No videos added yet.
-              </div>
-            ) : (
-              <div>
-                <InstagramEmbed url={videos[videoIndex].instagramUrl} />
-                <div className="mt-4">
-                  <h2 className="text-white font-semibold">{videos[videoIndex].title}</h2>
-                  {videos[videoIndex].description && (
-                    <p className="text-white/50 text-sm mt-1">{videos[videoIndex].description}</p>
-                  )}
-                </div>
+          <div className="space-y-6">
 
-                {videos.length > 1 && (
-                  <div className="flex items-center justify-between mt-6">
-                    <button
-                      onClick={() => setVideoIndex(i => Math.max(0, i - 1))}
-                      disabled={videoIndex === 0}
-                      className="flex items-center gap-1 px-3 py-2 rounded-lg border border-white/10 text-sm text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      <ChevronLeft className="w-4 h-4" /> Prev
-                    </button>
-                    <span className="text-white/30 text-xs">{videoIndex + 1} / {videos.length}</span>
-                    <button
-                      onClick={() => setVideoIndex(i => Math.min(videos.length - 1, i + 1))}
-                      disabled={videoIndex === videos.length - 1}
-                      className="flex items-center gap-1 px-3 py-2 rounded-lg border border-white/10 text-sm text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      Next <ChevronRight className="w-4 h-4" />
-                    </button>
+            {/* Video sub-tabs — only show if both have content */}
+            {(videos.length > 0 || videoFiles.length > 0) && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setVideoSubTab("instagram")}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+                    videoSubTab === "instagram"
+                      ? "bg-primary/20 text-primary border-primary/20"
+                      : "text-foreground/50 border-white/10 hover:text-foreground"
+                  }`}
+                >
+                  Instagram Reels {videos.length > 0 && `(${videos.length})`}
+                </button>
+                <button
+                  onClick={() => setVideoSubTab("uploaded")}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+                    videoSubTab === "uploaded"
+                      ? "bg-primary/20 text-primary border-primary/20"
+                      : "text-foreground/50 border-white/10 hover:text-foreground"
+                  }`}
+                >
+                  Uploaded Videos {videoFiles.length > 0 && `(${videoFiles.length})`}
+                </button>
+              </div>
+            )}
+
+            {/* Instagram Reels */}
+            {videoSubTab === "instagram" && (
+              <div>
+                {videos.length === 0 ? (
+                  <div className="text-foreground/40 text-sm p-8 text-center border border-white/10 rounded-2xl">
+                    No Instagram reels added yet.
+                  </div>
+                ) : (
+                  <div>
+                    <InstagramEmbed url={videos[videoIndex].instagramUrl} />
+                    <div className="mt-4">
+                      <h2 className="text-white font-semibold">{videos[videoIndex].title}</h2>
+                      {videos[videoIndex].description && (
+                        <p className="text-white/50 text-sm mt-1">{videos[videoIndex].description}</p>
+                      )}
+                    </div>
+                    {videos.length > 1 && (
+                      <div className="flex items-center justify-between mt-6">
+                        <button
+                          onClick={() => setVideoIndex(i => Math.max(0, i - 1))}
+                          disabled={videoIndex === 0}
+                          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-white/10 text-sm text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ChevronLeft className="w-4 h-4" /> Prev
+                        </button>
+                        <span className="text-white/30 text-xs">{videoIndex + 1} / {videos.length}</span>
+                        <button
+                          onClick={() => setVideoIndex(i => Math.min(videos.length - 1, i + 1))}
+                          disabled={videoIndex === videos.length - 1}
+                          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-white/10 text-sm text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                    {videos.length > 1 && (
+                      <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
+                        {videos.map((v, i) => (
+                          <button
+                            key={v._id}
+                            onClick={() => setVideoIndex(i)}
+                            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs border transition-all ${
+                              i === videoIndex
+                                ? "border-primary/50 text-primary bg-primary/10"
+                                : "border-white/10 text-white/40 hover:text-white"
+                            }`}
+                          >
+                            {v.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
+              </div>
+            )}
 
-                {/* Thumbnails */}
-                {videos.length > 1 && (
-                  <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
-                    {videos.map((v, i) => (
-                      <button
-                        key={v._id}
-                        onClick={() => setVideoIndex(i)}
-                        className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs border transition-all ${
-                          i === videoIndex
-                            ? "border-primary/50 text-primary bg-primary/10"
-                            : "border-white/10 text-white/40 hover:text-white"
-                        }`}
-                      >
-                        {v.title}
-                      </button>
-                    ))}
+            {/* Uploaded Videos */}
+            {videoSubTab === "uploaded" && (
+              <div>
+                {videoFiles.length === 0 ? (
+                  <div className="text-foreground/40 text-sm p-8 text-center border border-white/10 rounded-2xl">
+                    No uploaded videos yet.
+                  </div>
+                ) : (
+                  <div>
+                    <VideoFilePlayer video={videoFiles[videoFileIndex]} />
+                    {videoFiles.length > 1 && (
+                      <div className="flex items-center justify-between mt-6">
+                        <button
+                          onClick={() => setVideoFileIndex(i => Math.max(0, i - 1))}
+                          disabled={videoFileIndex === 0}
+                          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-white/10 text-sm text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ChevronLeft className="w-4 h-4" /> Prev
+                        </button>
+                        <span className="text-white/30 text-xs">{videoFileIndex + 1} / {videoFiles.length}</span>
+                        <button
+                          onClick={() => setVideoFileIndex(i => Math.min(videoFiles.length - 1, i + 1))}
+                          disabled={videoFileIndex === videoFiles.length - 1}
+                          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-white/10 text-sm text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                          Next <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                    {videoFiles.length > 1 && (
+                      <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
+                        {videoFiles.map((v, i) => (
+                          <button
+                            key={v._id}
+                            onClick={() => setVideoFileIndex(i)}
+                            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs border transition-all ${
+                              i === videoFileIndex
+                                ? "border-primary/50 text-primary bg-primary/10"
+                                : "border-white/10 text-white/40 hover:text-white"
+                            }`}
+                          >
+                            {v.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -267,7 +378,7 @@ export default function Music() {
           </div>
         )}
 
-        {/* Audio Tab */}
+        {/* Audio Tab — unchanged */}
         {!loading && tab === "audio" && (
           <div className="space-y-3">
             {tracks.length === 0 ? (
