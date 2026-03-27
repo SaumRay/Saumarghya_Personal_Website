@@ -39,7 +39,6 @@ export const getGalleryByCategory = async (req: Request, res: Response): Promise
   }
 };
 
-
 export const createGallery = async (req: Request, res: Response): Promise<void> => {
   try {
     const gallery = await Gallery.create(req.body);
