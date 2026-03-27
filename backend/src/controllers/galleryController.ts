@@ -26,7 +26,7 @@ export const getGalleryByCategory = async (req: Request, res: Response): Promise
   try {
     const category = req.params.category as GalleryCategory;
 
-    if (!["traveller", "fitness", "professional", "college", "family", "events", "other"].includes(category)) {
+    if (!["traveller", "fitness", "professional", "college", "family", "friends", "events", "other"].includes(category)) {
       res.status(400).json({ success: false, message: "Invalid category" });
       return;
     }

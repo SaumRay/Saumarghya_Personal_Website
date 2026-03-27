@@ -6,6 +6,7 @@ export type GalleryCategory =
   | "professional"
   | "college"
   | "family"
+  | "friends" 
   | "events"
   | "other";
 
@@ -31,7 +32,7 @@ const GallerySchema = new Schema<IGallery>(
   {
     category: {
       type: String,
-      enum: ["traveller", "fitness", "professional", "college", "family", "events", "other"],
+      enum: ["traveller", "fitness", "professional", "college", "family",  "friends", "events", "other"],
       required: true,
     },
     label: { type: String, required: true },

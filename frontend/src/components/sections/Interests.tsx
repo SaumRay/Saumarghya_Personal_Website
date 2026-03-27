@@ -114,7 +114,8 @@ export function Interests() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.5 }}
-            className="glass-card rounded-3xl p-6 flex flex-col justify-end border-white/10 hover:bg-white/10 transition-colors lg:col-span-2"
+            className="glass-card rounded-3xl p-6 flex flex-col justify-end border-white/10 hover:bg-white/10 transition-colors lg:col-span-2 cursor-pointer"
+            onClick={() => setLocation("/family-friends")}
           >
             <Users className="text-blue-400 w-8 h-8 mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Family & Friends</h3>

@@ -7,6 +7,7 @@ type Category = "traveller" | "fitness";
 interface StatItem {
   label: string;
   value: string;
+  muscleGroup?: string;
 }
 
 interface CategoryDetail {
@@ -22,12 +23,16 @@ const CATEGORY_OPTIONS: { value: Category; label: string }[] = [
   { value: "fitness", label: "Fitness & Gym" },
 ];
 
+const MUSCLE_GROUPS = [
+  "Chest", "Back", "Biceps", "Triceps", "Shoulders", "Abs", "Legs", "Cardio", "Other"
+];
+
 const emptyDetail = (category: Category): CategoryDetail => ({
   category,
   title: "",
   subtitle: "",
   description: "",
-  stats: [{ label: "", value: "" }],
+  stats: [{ label: "", value: "", muscleGroup: "" }],
 });
 
 export function AdminCategoryDetails() {
@@ -48,14 +53,15 @@ export function AdminCategoryDetails() {
     try {
       const res = await fetch(`${API_BASE}/api/category-details/${category}`);
       const data = await res.json();
-
       if (data.success && data.data) {
         setForm({
           category,
           title: data.data.title || "",
           subtitle: data.data.subtitle || "",
           description: data.data.description || "",
-          stats: data.data.stats?.length ? data.data.stats : [{ label: "", value: "" }],
+          stats: data.data.stats?.length
+            ? data.data.stats
+            : [{ label: "", value: "", muscleGroup: "" }],
         });
       } else {
         setForm(emptyDetail(category));
@@ -71,27 +77,25 @@ export function AdminCategoryDetails() {
     fetchCategoryDetail(selectedCategory);
   }, [selectedCategory]);
 
-  const updateStat = (index: number, key: "label" | "value", value: string) => {
+  const updateStat = (index: number, key: keyof StatItem, value: string) => {
     const next = [...form.stats];
     next[index] = { ...next[index], [key]: value };
     setForm({ ...form, stats: next });
   };
 
   const addStat = () => {
-    setForm({ ...form, stats: [...form.stats, { label: "", value: "" }] });
+    setForm({ ...form, stats: [...form.stats, { label: "", value: "", muscleGroup: "" }] });
   };
 
   const removeStat = (index: number) => {
     const next = form.stats.filter((_, i) => i !== index);
-    setForm({ ...form, stats: next.length ? next : [{ label: "", value: "" }] });
+    setForm({ ...form, stats: next.length ? next : [{ label: "", value: "", muscleGroup: "" }] });
   };
 
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
-
     const cleanStats = form.stats.filter((s) => s.label.trim() && s.value.trim());
-
     try {
       const res = await fetch(`${API_BASE}/api/category-details/${selectedCategory}`, {
         method: "PUT",
@@ -103,7 +107,6 @@ export function AdminCategoryDetails() {
           stats: cleanStats,
         }),
       });
-
       const data = await res.json();
       if (data.success) {
         setSaved(true);
@@ -113,6 +116,8 @@ export function AdminCategoryDetails() {
       setSaving(false);
     }
   };
+
+  const isFitness = selectedCategory === "fitness";
 
   return (
     <div className="max-w-4xl">
@@ -137,6 +142,7 @@ export function AdminCategoryDetails() {
         </div>
       ) : (
         <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-5">
+          {/* Title, Subtitle, Description — unchanged */}
           <div>
             <label className="text-xs font-medium text-foreground/60 mb-1 block">Title</label>
             <input
@@ -146,7 +152,6 @@ export function AdminCategoryDetails() {
               className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
-
           <div>
             <label className="text-xs font-medium text-foreground/60 mb-1 block">Subtitle</label>
             <input
@@ -156,7 +161,6 @@ export function AdminCategoryDetails() {
               className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
-
           <div>
             <label className="text-xs font-medium text-foreground/60 mb-1 block">Description</label>
             <textarea
@@ -168,6 +172,7 @@ export function AdminCategoryDetails() {
             />
           </div>
 
+          {/* Stats Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="text-xs font-medium text-foreground/60 block">Mini Stats</label>
@@ -179,21 +184,44 @@ export function AdminCategoryDetails() {
               </button>
             </div>
 
+            {/* Column headers */}
+            <div className={`grid gap-3 mb-2 px-1 text-xs text-foreground/40 font-medium ${isFitness ? "grid-cols-[1fr_1fr_1fr_auto]" : "grid-cols-[1fr_1fr_auto]"}`}>
+              <span>Label</span>
+              <span>Value</span>
+              {isFitness && <span>Muscle Group</span>}
+              <span></span>
+            </div>
+
             <div className="space-y-3">
               {form.stats.map((stat, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3">
+                <div
+                  key={index}
+                  className={`grid gap-3 ${isFitness ? "grid-cols-[1fr_1fr_1fr_auto]" : "grid-cols-[1fr_1fr_auto]"}`}
+                >
                   <input
                     value={stat.label}
                     onChange={(e) => updateStat(index, "label", e.target.value)}
-                    placeholder="Label (e.g. Bench Press PR)"
+                    placeholder="e.g. Bench Press"
                     className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
                   />
                   <input
                     value={stat.value}
                     onChange={(e) => updateStat(index, "value", e.target.value)}
-                    placeholder="Value (e.g. 90 kg)"
+                    placeholder="e.g. 65 kg for 1"
                     className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
                   />
+                  {isFitness && (
+                    <select
+                      value={stat.muscleGroup || ""}
+                      onChange={(e) => updateStat(index, "muscleGroup", e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                    >
+                      <option value="">Select group</option>
+                      {MUSCLE_GROUPS.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  )}
                   <button
                     onClick={() => removeStat(index)}
                     className="px-3 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"

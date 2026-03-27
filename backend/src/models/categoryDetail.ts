@@ -12,6 +12,7 @@ export type CategoryDetailType =
 export interface ICategoryStat {
   label: string;
   value: string;
+  muscleGroup?: string;
 }
 
 export interface ICategoryDetail extends Document {
@@ -28,6 +29,7 @@ const CategoryStatSchema = new Schema<ICategoryStat>(
   {
     label: { type: String, required: true, trim: true },
     value: { type: String, required: true, trim: true },
+    muscleGroup: { type: String, default: "" },
   },
   { _id: false }
 );

@@ -62,9 +62,10 @@ export const upsertCategoryDetail = async (req: Request, res: Response): Promise
         title: title || "",
         subtitle: subtitle || "",
         description: description || "",
-        stats: parsedStats.map((s: { label: string; value: string }) => ({
+        stats: parsedStats.map((s: { label: string; value: string; muscleGroup?: string }) => ({
           label: s.label?.trim?.() || "",
           value: s.value?.trim?.() || "",
+          muscleGroup: s.muscleGroup?.trim?.() || "",
         })).filter((s: { label: string; value: string }) => s.label && s.value),
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
