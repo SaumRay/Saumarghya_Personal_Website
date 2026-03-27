@@ -101,7 +101,8 @@ export function Interests() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.4 }}
-            className="glass-card rounded-3xl p-6 flex flex-col justify-end border-white/10 hover:bg-white/10 transition-colors"
+            className="glass-card rounded-3xl p-6 flex flex-col justify-end border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+            onClick={() => setLocation("/music")}
           >
             <Music className="text-pink-400 w-8 h-8 mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Vocal Music</h3>
