@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAdminAuth, API_BASE } from "@/hooks/use-admin-auth";
-import { Mail, MailOpen, Clock, CheckCheck } from "lucide-react";
+import { Mail, MailOpen, Clock, CheckCheck, ClipboardCopy, CheckCircle } from "lucide-react";
 
 interface Message {
   _id: string;
@@ -17,6 +17,7 @@ export function AdminMessages() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Message | null>(null);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [copied, setCopied] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -35,6 +36,12 @@ export function AdminMessages() {
     setSelected((prev) => prev?._id === id ? { ...prev, read: true } : prev);
   };
 
+  const copyEmail = (email: string) => {
+    navigator.clipboard.writeText(email);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const filtered = filter === "unread" ? messages.filter((m) => !m.read) : messages;
   const unreadCount = messages.filter((m) => !m.read).length;
 
@@ -43,12 +50,20 @@ export function AdminMessages() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-foreground">
           Messages ({messages.length})
-          {unreadCount > 0 && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20">{unreadCount} unread</span>}
+          {unreadCount > 0 && (
+            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20">
+              {unreadCount} unread
+            </span>
+          )}
         </h2>
         <div className="flex gap-2">
           {(["all", "unread"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filter === f ? "bg-primary/20 text-primary border border-primary/20" : "text-foreground/50 hover:text-foreground border border-foreground/10"}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                filter === f
+                  ? "bg-primary/20 text-primary border border-primary/20"
+                  : "text-foreground/50 hover:text-foreground border border-foreground/10"
+              }`}>
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
@@ -56,7 +71,11 @@ export function AdminMessages() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="glass-card rounded-2xl h-16 animate-pulse border border-white/5" />)}</div>
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="glass-card rounded-2xl h-16 animate-pulse border border-white/5" />
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-foreground/30">
           <MailOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -65,15 +84,22 @@ export function AdminMessages() {
       ) : (
         <div className="space-y-2">
           {filtered.map((m) => (
-            <button key={m._id} onClick={() => { setSelected(m); if (!m.read) markRead(m._id); }}
-              className={`w-full glass-card rounded-2xl p-4 border text-left transition-all hover:border-primary/30 ${!m.read ? "border-primary/20 bg-primary/5" : "border-white/10"}`}>
+            <button key={m._id}
+              onClick={() => { setSelected(m); if (!m.read) markRead(m._id); }}
+              className={`w-full glass-card rounded-2xl p-4 border text-left transition-all hover:border-primary/30 ${
+                !m.read ? "border-primary/20 bg-primary/5" : "border-white/10"
+              }`}>
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!m.read ? "bg-primary/20 text-primary" : "bg-foreground/5 text-foreground/40"}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                  !m.read ? "bg-primary/20 text-primary" : "bg-foreground/5 text-foreground/40"
+                }`}>
                   {!m.read ? <Mail className="w-4 h-4" /> : <MailOpen className="w-4 h-4" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className={`font-semibold text-sm truncate ${!m.read ? "text-foreground" : "text-foreground/70"}`}>{m.name}</p>
+                    <p className={`font-semibold text-sm truncate ${!m.read ? "text-foreground" : "text-foreground/70"}`}>
+                      {m.name}
+                    </p>
                     <p className="text-foreground/40 text-xs truncate">{m.email}</p>
                   </div>
                   <p className="text-foreground/50 text-xs truncate mt-0.5">{m.message}</p>
@@ -92,26 +118,65 @@ export function AdminMessages() {
       {selected && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="glass-card rounded-3xl w-full max-w-lg p-6 border border-white/10">
+
+            {/* Header */}
             <div className="flex items-start justify-between mb-5">
               <div>
-                <p className="font-bold text-foreground">{selected.name}</p>
-                <a href={`mailto:${selected.email}`} className="text-primary text-sm hover:underline">{selected.email}</a>
+                <p className="font-bold text-foreground text-lg">{selected.name}</p>
+                <p className="text-foreground/50 text-xs mt-0.5">
+                  {new Date(selected.createdAt).toLocaleString()}
+                </p>
               </div>
               <div className="flex items-center gap-2">
-                {selected.read && <span className="flex items-center gap-1 text-xs text-green-400"><CheckCheck className="w-3 h-3" /> Read</span>}
-                <button onClick={() => setSelected(null)} className="text-foreground/40 hover:text-foreground ml-2">✕</button>
+                {selected.read && (
+                  <span className="flex items-center gap-1 text-xs text-green-400">
+                    <CheckCheck className="w-3 h-3" /> Read
+                  </span>
+                )}
+                <button onClick={() => setSelected(null)} className="text-foreground/40 hover:text-foreground ml-2 text-lg">
+                  ✕
+                </button>
               </div>
             </div>
-            <div className="bg-foreground/5 rounded-2xl p-4 text-foreground/80 text-sm leading-relaxed mb-5 border border-foreground/10">
+
+            {/* Email row with copy button */}
+            <div className="flex items-center gap-2 mb-5 px-4 py-3 rounded-xl bg-foreground/5 border border-foreground/10">
+              <Mail className="w-4 h-4 text-foreground/40 flex-shrink-0" />
+              <p className="text-foreground/80 text-sm flex-1 truncate">{selected.email}</p>
+              <button
+                onClick={() => copyEmail(selected.email)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-foreground/10 hover:bg-foreground/20 text-foreground/60 hover:text-foreground text-xs transition-all flex-shrink-0"
+              >
+                {copied ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+
+            {/* Message body */}
+            <div className="bg-foreground/5 rounded-2xl p-4 text-foreground/80 text-sm leading-relaxed mb-5 border border-foreground/10 max-h-48 overflow-y-auto">
               {selected.message}
             </div>
+
+            {/* Actions */}
             <div className="flex gap-3">
-              <button onClick={() => setSelected(null)} className="flex-1 py-2.5 rounded-xl border border-foreground/10 text-foreground/60 text-sm">Close</button>
-              <a href={`mailto:${selected.email}?subject=Re: Your message via portfolio`}
-                className="flex-1 py-2.5 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium text-center hover:bg-primary/30 transition-all">
-                Reply via Email
+              <button
+                onClick={() => setSelected(null)}
+                className="flex-1 py-2.5 rounded-xl border border-foreground/10 text-foreground/60 text-sm hover:bg-foreground/5 transition-all"
+              >
+                Close
+              </button>
+              <a
+                href={`mailto:${selected.email}?subject=Re: Your message via portfolio&body=Hi ${selected.name},%0D%0A%0D%0A`}
+                className="flex-1 py-2.5 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium text-center hover:bg-primary/30 transition-all flex items-center justify-center gap-2"
+              >
+                <Mail className="w-4 h-4" /> Reply via Email
               </a>
             </div>
+
+            {/* Tip */}
+            <p className="text-xs text-foreground/30 text-center mt-3">
+              Copy the email above to reply from Gmail or any mail app directly
+            </p>
           </div>
         </div>
       )}
