@@ -272,11 +272,20 @@ export function AdminFavourites() {
   };
 
   const toggleTop3 = async (catId: string, itemIndex: number, current: boolean) => {
+    const item = activeCat?.items[itemIndex];  // ← grab the full item
+    if (!item) return;
     try {
       const res = await fetch(`${API_BASE}/api/favourites/${catId}/items/${itemIndex}`, {
         method: "PUT",
         headers,
-        body: JSON.stringify({ isTop3: !current }),
+        body: JSON.stringify({ 
+            name: item.name,
+            description: item.description,
+            imageUrl: item.imageUrl,
+            rating: item.rating,
+            order: item.order,
+            isTop3: !current, 
+        }),
       });
       const d = await res.json();
       if (d.success) fetchCategories(true);
