@@ -9,6 +9,8 @@ interface FavouriteItem {
   rating?: string;
   isTop3: boolean;
   order: number;
+  musicType?: "artist" | "song";
+  artistName?: string;
 }
 
 interface FavouriteCategory {
@@ -24,7 +26,9 @@ interface FavouriteCategory {
 
 const emptyItem = () => ({
   name: "", description: "", imageUrl: "", rating: "",
-  isTop3: false, order: 0, sport: "", itemType: ""
+  isTop3: false, order: 0, sport: "", itemType: "",
+  musicType: "" as "" | "artist" | "song",
+  artistName: "",
 });
 
 const getPlaceholders = (label: string) => {
@@ -32,7 +36,7 @@ const getPlaceholders = (label: string) => {
   if (l.includes("movie") || l.includes("show"))
     return { name: "e.g. Interstellar", desc: "Why you love it", rating: "e.g. 9/10" };
   if (l.includes("music") || l.includes("artist"))
-    return { name: "e.g. Arijit Singh", desc: "What makes them special", rating: "e.g. 10/10" };
+    return { name: "e.g. Arijit Singh or Tum Hi Ho", desc: "Why it's special to you", rating: "e.g. 100/10" };
   if (l.includes("food") || l.includes("cuisine"))
     return { name: "e.g. Butter Chicken", desc: "Where you love having it", rating: "e.g. 9/10" };
   if (l.includes("sport") || l.includes("team"))
@@ -62,7 +66,57 @@ const SPORT_ITEM_TYPES = [
   { value: "Sport", label: "🎯 Sport (general)" },
 ];
 
+const MUSIC_TYPES = [
+  { value: "", label: "— Select type —" },
+  { value: "artist", label: "🎤 Artist" },
+  { value: "song", label: "🎵 Song" },
+];
+
 type ItemFormState = ReturnType<typeof emptyItem>;
+
+// ── ImageUploadField defined OUTSIDE to avoid remount on re-render ─────────────
+const ImageUploadField = ({
+  value, fileRef, onChange, onPick, uploadingImage,
+}: {
+  value: string;
+  fileRef: React.RefObject<HTMLInputElement | null>;
+  onChange: (url: string) => void;
+  onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  uploadingImage: boolean;
+}) => (
+  <div className="space-y-2">
+    <input ref={fileRef} type="file" accept="image/*" onChange={onPick} className="hidden" />
+    {value ? (
+      <div className="flex items-center gap-3">
+        <img src={value} className="w-14 h-14 rounded-xl object-cover border border-white/10" />
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploadingImage}
+            className="px-3 py-1.5 rounded-lg bg-foreground/5 border border-white/10 text-foreground/60 text-xs hover:bg-foreground/10 transition-all"
+          >
+            {uploadingImage ? "Uploading..." : "Change Image"}
+          </button>
+          <button
+            onClick={() => onChange("")}
+            className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 transition-all"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    ) : (
+      <button
+        onClick={() => fileRef.current?.click()}
+        disabled={uploadingImage}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground/60 text-sm hover:bg-foreground/10 transition-all w-full justify-center"
+      >
+        <Upload className="w-4 h-4" />
+        {uploadingImage ? "Uploading..." : "Upload Image (optional)"}
+      </button>
+    )}
+  </div>
+);
 
 export function AdminFavourites() {
   const { token } = useAdminAuth();
@@ -108,7 +162,6 @@ export function AdminFavourites() {
 
   useEffect(() => { fetchCategories(false); }, []);
 
-  // Upload image to S3 and return URL
   const uploadImage = async (file: File): Promise<string> => {
     setUploadingImage(true);
     try {
@@ -134,6 +187,7 @@ export function AdminFavourites() {
   const handleAddImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
     const url = await uploadImage(file);
     if (url) setNewItem(i => ({ ...i, imageUrl: url }));
   };
@@ -141,6 +195,7 @@ export function AdminFavourites() {
   const handleEditImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
     const url = await uploadImage(file);
     if (url) setEditItem(i => ({ ...i, imageUrl: url }));
   };
@@ -149,8 +204,7 @@ export function AdminFavourites() {
     setSavingNote(true);
     try {
       const res = await fetch(`${API_BASE}/api/favourites/${catId}`, {
-        method: "PUT",
-        headers,
+        method: "PUT", headers,
         body: JSON.stringify({ note: noteEdit[catId] || "" }),
       });
       const d = await res.json();
@@ -165,17 +219,13 @@ export function AdminFavourites() {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/favourites`, {
-        method: "POST",
-        headers,
+        method: "POST", headers,
         body: JSON.stringify({ label: newCatLabel.trim(), emoji: newCatEmoji }),
       });
       const d = await res.json();
       if (d.success) {
-        setCreatingCategory(false);
-        setNewCatLabel("");
-        setNewCatEmoji("⭐");
-        fetchCategories(true);
-        flash("Category created!");
+        setCreatingCategory(false); setNewCatLabel(""); setNewCatEmoji("⭐");
+        fetchCategories(true); flash("Category created!");
       } else flash(d.message || "Failed");
     } catch { flash("Error"); }
     setSaving(false);
@@ -194,6 +244,9 @@ export function AdminFavourites() {
   const isSportsCategory = (label: string) =>
     label.toLowerCase().includes("sport") || label.toLowerCase().includes("team");
 
+  const isMusicCategory = (label: string) =>
+    label.toLowerCase().includes("music") || label.toLowerCase().includes("artist");
+
   const buildDescription = (item: ItemFormState, isSports: boolean) => {
     if (isSports && (item.sport || item.itemType)) {
       const tag = [item.itemType, item.sport].filter(Boolean).join(" • ");
@@ -204,27 +257,30 @@ export function AdminFavourites() {
 
   const addItem = async () => {
     if (!newItem.name.trim()) return flash("Name is required");
+    const isMusic = isMusicCategory(activeCat?.label || "");
+    if (isMusic && !newItem.musicType) return flash("Please select Artist or Song");
     const isSports = isSportsCategory(activeCat?.label || "");
     setSaving(true);
     try {
+      const body: Record<string, unknown> = {
+        name: newItem.name,
+        description: buildDescription(newItem, isSports),
+        imageUrl: newItem.imageUrl || "",
+        rating: newItem.rating || "",
+        isTop3: newItem.isTop3,
+        order: newItem.order,
+      };
+      if (isMusic) {
+        body.musicType = newItem.musicType;
+        if (newItem.musicType === "song") body.artistName = newItem.artistName || "";
+      }
       const res = await fetch(`${API_BASE}/api/favourites/${activeCategory}/items`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          name: newItem.name,
-          description: buildDescription(newItem, isSports),
-          imageUrl: newItem.imageUrl || "",
-          rating: newItem.rating || "",
-          isTop3: newItem.isTop3,
-          order: newItem.order,
-        }),
+        method: "POST", headers, body: JSON.stringify(body),
       });
       const d = await res.json();
       if (d.success) {
-        setNewItem(emptyItem());
-        setAddingItem(false);
-        fetchCategories(true);
-        flash("Item added!");
+        setNewItem(emptyItem()); setAddingItem(false);
+        fetchCategories(true); flash("Item added!");
       } else flash(d.message || "Failed");
     } catch { flash("Error"); }
     setSaving(false);
@@ -241,50 +297,52 @@ export function AdminFavourites() {
       order: item.order,
       sport: "",
       itemType: "",
+      musicType: item.musicType || "",
+      artistName: item.artistName || "",
     });
   };
 
   const saveEdit = async () => {
     if (!editItem.name.trim()) return flash("Name is required");
     if (editingIndex === null) return;
+    const isMusic = isMusicCategory(activeCat?.label || "");
+    if (isMusic && !editItem.musicType) return flash("Please select Artist or Song");
     setSaving(true);
     try {
+      const body: Record<string, unknown> = {
+        name: editItem.name,
+        description: editItem.description,
+        imageUrl: editItem.imageUrl,
+        rating: editItem.rating,
+        isTop3: editItem.isTop3,
+        order: editItem.order,
+      };
+      if (isMusic) {
+        body.musicType = editItem.musicType;
+        body.artistName = editItem.musicType === "song" ? editItem.artistName || "" : "";
+      }
       const res = await fetch(`${API_BASE}/api/favourites/${activeCategory}/items/${editingIndex}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({
-          name: editItem.name,
-          description: editItem.description,
-          imageUrl: editItem.imageUrl,
-          rating: editItem.rating,
-          isTop3: editItem.isTop3,
-          order: editItem.order,
-        }),
+        method: "PUT", headers, body: JSON.stringify(body),
       });
       const d = await res.json();
       if (d.success) {
-        setEditingIndex(null);
-        fetchCategories(true);
-        flash("Item updated!");
+        setEditingIndex(null); fetchCategories(true); flash("Item updated!");
       } else flash(d.message || "Failed");
     } catch { flash("Error"); }
     setSaving(false);
   };
 
   const toggleTop3 = async (catId: string, itemIndex: number, current: boolean) => {
-    const item = activeCat?.items[itemIndex];  // ← grab the full item
+    const item = activeCat?.items[itemIndex];
     if (!item) return;
     try {
       const res = await fetch(`${API_BASE}/api/favourites/${catId}/items/${itemIndex}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({ 
-            name: item.name,
-            description: item.description,
-            imageUrl: item.imageUrl,
-            rating: item.rating,
-            order: item.order,
-            isTop3: !current, 
+        method: "PUT", headers,
+        body: JSON.stringify({
+          name: item.name, description: item.description,
+          imageUrl: item.imageUrl, rating: item.rating,
+          order: item.order, isTop3: !current,
+          musicType: item.musicType, artistName: item.artistName,
         }),
       });
       const d = await res.json();
@@ -308,55 +366,21 @@ export function AdminFavourites() {
   const top3Count = activeCat?.items.filter(i => i.isTop3).length || 0;
   const ph = getPlaceholders(activeCat?.label || "");
   const isSports = isSportsCategory(activeCat?.label || "");
+  const isMusic = isMusicCategory(activeCat?.label || "");
 
-  // Reusable image upload field
-  const ImageUploadField = ({
-    value, fileRef, onChange, onPick
-  }: {
-    value: string;
-    fileRef: React.RefObject<HTMLInputElement| null>;
-    onChange: (url: string) => void;
-    onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  }) => (
-    <div className="space-y-2">
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        onChange={onPick}
-        className="hidden"
-      />
-      {value ? (
-        <div className="flex items-center gap-3">
-          <img src={value} className="w-14 h-14 rounded-xl object-cover border border-white/10" />
-          <div className="flex flex-col gap-1">
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={uploadingImage}
-              className="px-3 py-1.5 rounded-lg bg-foreground/5 border border-white/10 text-foreground/60 text-xs hover:bg-foreground/10 transition-all"
-            >
-              {uploadingImage ? "Uploading..." : "Change Image"}
-            </button>
-            <button
-              onClick={() => onChange("")}
-              className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 transition-all"
-            >
-              Remove
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={uploadingImage}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground/60 text-sm hover:bg-foreground/10 transition-all w-full justify-center"
-        >
-          <Upload className="w-4 h-4" />
-          {uploadingImage ? "Uploading..." : "Upload Image (optional)"}
-        </button>
-      )}
-    </div>
-  );
+  // ── Music type badge helper ─────────────────────────────────────────────────
+  const MusicBadge = ({ type }: { type?: string }) => {
+    if (!type) return null;
+    return (
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+        type === "artist"
+          ? "border-purple-500/40 text-purple-400 bg-purple-500/10"
+          : "border-cyan-500/40 text-cyan-400 bg-cyan-500/10"
+      }`}>
+        {type === "artist" ? "🎤 Artist" : "🎵 Song"}
+      </span>
+    );
+  };
 
   return (
     <div className="max-w-4xl">
@@ -376,23 +400,16 @@ export function AdminFavourites() {
         </div>
       )}
 
-      {/* Create category form */}
       {creatingCategory && (
         <div className="glass-card rounded-2xl p-5 border border-white/10 mb-6 space-y-3">
           <h3 className="text-sm font-semibold text-foreground">New Category</h3>
           <div className="flex gap-3">
-            <input
-              value={newCatEmoji}
-              onChange={e => setNewCatEmoji(e.target.value)}
+            <input value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)}
               placeholder="Emoji"
-              className="w-16 px-3 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none text-center"
-            />
-            <input
-              value={newCatLabel}
-              onChange={e => setNewCatLabel(e.target.value)}
+              className="w-16 px-3 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none text-center" />
+            <input value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)}
               placeholder="Category name (e.g. Video Games)"
-              className="flex-1 px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-            />
+              className="flex-1 px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
           </div>
           <div className="flex gap-2">
             <button onClick={createCategory} disabled={saving}
@@ -423,9 +440,7 @@ export function AdminFavourites() {
                 <button
                   onClick={() => {
                     setActiveCategory(cat._id);
-                    setAddingItem(false);
-                    setEditingIndex(null);
-                    setNewItem(emptyItem());
+                    setAddingItem(false); setEditingIndex(null); setNewItem(emptyItem());
                   }}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
                     activeCategory === cat._id
@@ -447,20 +462,18 @@ export function AdminFavourites() {
 
           {activeCat && (
             <div className="space-y-4">
-
               {/* Preference note */}
               <div className="glass-card rounded-2xl border border-white/10 p-5 space-y-3">
                 <label className="text-xs font-medium text-foreground/60 block">
                   Preference Note <span className="text-foreground/30">(optional — shown to visitors)</span>
                 </label>
-                <textarea
-                  rows={3}
+                <textarea rows={3}
                   value={noteEdit[activeCat._id] ?? activeCat.note}
                   onChange={e => setNoteEdit(n => ({ ...n, [activeCat._id]: e.target.value }))}
                   placeholder={
-                    isSports
-                      ? "e.g. Huge cricket fan, follow IPL closely. CSK for life 💛"
-                      : "e.g. I prefer psychological thrillers over action films..."
+                    isMusic ? "e.g. I prefer romantic, light-hearted songs..." :
+                    isSports ? "e.g. Huge cricket fan, follow IPL closely. CSK for life 💛" :
+                    "e.g. I prefer psychological thrillers over action films..."
                   }
                   className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
@@ -481,6 +494,12 @@ export function AdminFavourites() {
                         {activeCat.items.length} item{activeCat.items.length !== 1 ? "s" : ""}
                       </span>
                     </h3>
+                    {isMusic && (
+                      <p className="text-xs text-foreground/40 mt-0.5">
+                        🎤 {activeCat.items.filter(i => i.musicType === "artist").length} artists ·
+                        🎵 {activeCat.items.filter(i => i.musicType === "song").length} songs
+                      </p>
+                    )}
                     <p className="text-xs text-foreground/40 mt-0.5">⭐ Top 3 selected: {top3Count}/3</p>
                   </div>
                   <button
@@ -491,11 +510,35 @@ export function AdminFavourites() {
                   </button>
                 </div>
 
-                {/* Add item form */}
+                {/* ── Add item form ── */}
                 {addingItem && (
                   <div className="px-5 py-4 border-b border-white/10 bg-foreground/5 space-y-3">
                     <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wide">New Item</p>
 
+                    {/* Music type selector */}
+                    {isMusic && (
+                      <div>
+                        <label className="text-xs text-foreground/50 mb-1 block">Type *</label>
+                        <div className="flex gap-2">
+                          {MUSIC_TYPES.filter(t => t.value).map(t => (
+                            <button key={t.value}
+                              onClick={() => setNewItem(i => ({ ...i, musicType: t.value as "artist" | "song" }))}
+                              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                                newItem.musicType === t.value
+                                  ? t.value === "artist"
+                                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                                    : "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+                                  : "text-foreground/50 border-white/10 hover:bg-foreground/5"
+                              }`}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sports selectors */}
                     {isSports && (
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -519,8 +562,17 @@ export function AdminFavourites() {
 
                     <input value={newItem.name}
                       onChange={e => setNewItem(i => ({ ...i, name: e.target.value }))}
-                      placeholder={ph.name}
+                      placeholder={isMusic && newItem.musicType === "song" ? "Song name *" : ph.name}
                       className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+
+                    {/* Artist name — only for songs */}
+                    {isMusic && newItem.musicType === "song" && (
+                      <input value={newItem.artistName}
+                        onChange={e => setNewItem(i => ({ ...i, artistName: e.target.value }))}
+                        placeholder="Artist name (e.g. Arijit Singh)"
+                        className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                    )}
+
                     <input value={newItem.description}
                       onChange={e => setNewItem(i => ({ ...i, description: e.target.value }))}
                       placeholder={ph.desc}
@@ -535,6 +587,7 @@ export function AdminFavourites() {
                       fileRef={addImageRef}
                       onChange={(url) => setNewItem(i => ({ ...i, imageUrl: url }))}
                       onPick={handleAddImagePick}
+                      uploadingImage={uploadingImage}
                     />
 
                     <label className="flex items-center gap-3 cursor-pointer w-fit">
@@ -560,7 +613,7 @@ export function AdminFavourites() {
                   </div>
                 )}
 
-                {/* Items list */}
+                {/* ── Items list ── */}
                 {activeCat.items.length === 0 ? (
                   <div className="px-5 py-8 text-foreground/40 text-sm text-center">
                     No items yet. Add your first favourite!
@@ -569,7 +622,6 @@ export function AdminFavourites() {
                   <div className="divide-y divide-white/5">
                     {activeCat.items.map((item, index) => (
                       <div key={index}>
-                        {/* View row */}
                         {editingIndex !== index ? (
                           <div className={`flex items-center gap-4 px-5 py-3 ${item.isTop3 ? "bg-yellow-400/5" : ""}`}>
                             {item.imageUrl && (
@@ -580,15 +632,17 @@ export function AdminFavourites() {
                               <div className="flex items-center gap-2 flex-wrap">
                                 {item.isTop3 && <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
                                 <p className="font-medium text-foreground text-sm">{item.name}</p>
+                                <MusicBadge type={item.musicType} />
                                 {item.rating && <span className="text-xs text-yellow-400">⭐ {item.rating}</span>}
                               </div>
+                              {item.musicType === "song" && item.artistName && (
+                                <p className="text-foreground/40 text-xs mt-0.5">by {item.artistName}</p>
+                              )}
                               {item.description && (
                                 <p className="text-foreground/50 text-xs mt-0.5">{item.description}</p>
                               )}
                             </div>
-                            {/* Action buttons */}
-                            <button onClick={() => startEdit(item, index)}
-                              title="Edit"
+                            <button onClick={() => startEdit(item, index)} title="Edit"
                               className="w-8 h-8 rounded-lg bg-foreground/5 text-foreground/40 hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-colors flex-shrink-0">
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
@@ -605,20 +659,49 @@ export function AdminFavourites() {
                             </button>
                           </div>
                         ) : (
-                          /* Inline edit form */
                           <div className="px-5 py-4 bg-foreground/5 space-y-3 border-l-2 border-primary/40">
                             <div className="flex items-center justify-between">
                               <p className="text-xs font-semibold text-primary uppercase tracking-wide">Editing Item</p>
-                              <button onClick={() => setEditingIndex(null)}
-                                className="text-foreground/40 hover:text-foreground">
+                              <button onClick={() => setEditingIndex(null)} className="text-foreground/40 hover:text-foreground">
                                 <X className="w-4 h-4" />
                               </button>
                             </div>
 
+                            {/* Music type selector in edit */}
+                            {isMusic && (
+                              <div>
+                                <label className="text-xs text-foreground/50 mb-1 block">Type *</label>
+                                <div className="flex gap-2">
+                                  {MUSIC_TYPES.filter(t => t.value).map(t => (
+                                    <button key={t.value}
+                                      onClick={() => setEditItem(i => ({ ...i, musicType: t.value as "artist" | "song" }))}
+                                      className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                                        editItem.musicType === t.value
+                                          ? t.value === "artist"
+                                            ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                                            : "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+                                          : "text-foreground/50 border-white/10 hover:bg-foreground/5"
+                                      }`}
+                                    >
+                                      {t.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
                             <input value={editItem.name}
                               onChange={e => setEditItem(i => ({ ...i, name: e.target.value }))}
-                              placeholder={ph.name}
+                              placeholder={isMusic && editItem.musicType === "song" ? "Song name *" : ph.name}
                               className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+
+                            {isMusic && editItem.musicType === "song" && (
+                              <input value={editItem.artistName}
+                                onChange={e => setEditItem(i => ({ ...i, artistName: e.target.value }))}
+                                placeholder="Artist name (e.g. Arijit Singh)"
+                                className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                            )}
+
                             <input value={editItem.description}
                               onChange={e => setEditItem(i => ({ ...i, description: e.target.value }))}
                               placeholder={ph.desc}
@@ -633,6 +716,7 @@ export function AdminFavourites() {
                               fileRef={editImageRef}
                               onChange={(url) => setEditItem(i => ({ ...i, imageUrl: url }))}
                               onPick={handleEditImagePick}
+                              uploadingImage={uploadingImage}
                             />
 
                             <label className="flex items-center gap-3 cursor-pointer w-fit">
