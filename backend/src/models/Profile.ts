@@ -2,22 +2,22 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IRPGStat {
   label: string;
-  value: number;       // 0–100
-  color: string;       // Tailwind bg class, e.g. "bg-cyan-400"
-  trackColor: string;  // Tailwind bg class for empty blocks, e.g. "bg-cyan-950"
+  value: number;
+  color: string;
+  trackColor: string;
 }
 
 export interface IRPGBadge {
   label: string;
-  borderColor: string; // Tailwind border class, e.g. "border-yellow-500"
-  textColor: string;   // Tailwind text class, e.g. "text-yellow-400"
+  borderColor: string;
+  textColor: string;
 }
 
 export interface IRPGCardConfig {
-  title: string;       // e.g. "THE POLYMATH"
-  subtitle: string;    // e.g. "Agartala → Coimbatore · XAT 98.79 · CAT 94.11"
+  title: string;
+  subtitle: string;
   level: number;
-  archetype: string;   // e.g. "POLYMATH"
+  archetype: string;
   hp: number;
   cardNumber: string;
   stats: IRPGStat[];
@@ -28,6 +28,7 @@ export interface IProfile extends Document {
   name: string;
   tagline: string;
   bio: string;
+  aboutBio: string;        // 👈 new — controls About section
   email: string;
   phone: string[];
   location: string;
@@ -80,15 +81,16 @@ const RPGCardSchema = new Schema<IRPGCardConfig>(
 
 const ProfileSchema = new Schema<IProfile>(
   {
-    name:     { type: String, required: true },
-    tagline:  { type: String, default: "" },
-    bio:      { type: String, default: "" },
-    email:    { type: String, required: true },
-    phone:    [{ type: String }],
-    location: { type: String, default: "" },
-    linkedin: { type: String, default: "" },
-    github:   { type: String, default: "" },
-    instagram:{ type: String, default: "" },
+    name:      { type: String, required: true },
+    tagline:   { type: String, default: "" },
+    bio:       { type: String, default: "" },
+    aboutBio:  { type: String, default: "" },   // 👈 new
+    email:     { type: String, required: true },
+    phone:     [{ type: String }],
+    location:  { type: String, default: "" },
+    linkedin:  { type: String, default: "" },
+    github:    { type: String, default: "" },
+    instagram: { type: String, default: "" },
     profileImages: [
       {
         key:        { type: String, required: true },

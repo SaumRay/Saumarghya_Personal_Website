@@ -1,11 +1,47 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Heart, Globe, GraduationCap } from "lucide-react";
+import { GraduationCap, Globe } from "lucide-react";
+import { API_BASE } from "@/hooks/use-admin-auth";
+
+const FALLBACK_BIO = `My name is Saumarghya Ray — a 24-year-old QA Engineer at Hewlett Packard Enterprise, Bengaluru, navigating life with intellect, curiosity, and an adaptive spirit.
+
+Born on 21st January 2002 into a warm Bengali joint family in Agartala, Tripura, I grew up surrounded by love and encouragement. I schooled at Holy Cross School, securing 4th position in ICSE 2018. Beyond academics, I pursued Vocal Music, Painting, and Recitation, and won State & National-level Abacus competitions. In Class 12, I scored 93.75% in ISC Science and secured 98.49 percentile in JEE Mains.
+
+I pursued B.E. in Computer Science at PSG College of Technology, Coimbatore — an experience that shaped me deeply, both academically and personally. In 2023, I cracked GATE CSE with AIR 590, ranking 1st in my college while still in my 3rd year.
+
+At HPE, I work as a Systems Software QA Engineer and have been recognised with multiple Starpoints awards for collaboration, innovation, and work ethics.
+
+Looking ahead, I am preparing for MBA through CAT/XAT — targeting the top IIMs, XLRI, and SPJIMR — and also plan to appear for UPSC and SSC-CGL, driven more by the joy of learning than the destination.
+
+Life so far has been a remarkable journey — and I'm only just getting started.`;
 
 export function About() {
+  const [bio, setBio] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/profile`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data?.aboutBio) {
+          setBio(d.data.aboutBio);
+        } else if (d.success && d.data?.bio) {
+          setBio(d.data.bio);
+        } else {
+          setBio(FALLBACK_BIO);
+        }
+      })
+      .catch(() => setBio(FALLBACK_BIO))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Split bio into paragraphs by newline
+  const paragraphs = bio.split("\n").filter(p => p.trim().length > 0);
+
   return (
     <section id="about" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -18,50 +54,44 @@ export function About() {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
-          <motion.div 
+
+          {/* Bio text */}
+          <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             className="lg:col-span-7 space-y-6 text-lg text-white/80 leading-relaxed font-medium"
           >
-            <p>
-              My name is Saumarghya Ray, a 24-year-old navigating the maze of life with intellect, curiosity, and an adaptive spirit.
-            </p>
-            <p>
-              I was born on 21st January 2002 into a warm Bengali joint family in Agartala, Tripura, to my parents Debasis Ray and Mridula DebRoy. Growing up, I was surrounded by love — from my parents, grandparents, uncle, aunt, and my caring younger cousin sister, who is three years my junior. My early schooling began at Maharshi VidyaMandir, Ramnagar, before I moved to Holy Cross School, where I spent the rest of my school life. I secured the 4th position in the ICSE 2018 Board Exams.
-            </p>
-            <p>
-              Beyond academics, I was deeply involved in co-curricular pursuits — Vocal Music, Painting, and Recitation — nurtured by parents who always ensured I had access to the best opportunities. During my 4th Standard I was enrolled at Aloha (Abacus learning centre) which has been a real asset in my life in terms of my enhanced interpretation of numerology and calculations, where I have tasted success across both State-level as well as National-level competitions. During Class 12, I appeared for JEE Mains & Advanced, securing 98.49 percentile and AIR 12261 respectively, while also scoring 93.75% in ISC Science.
-            </p>
-            <p>
-              Since childhood, I have had a strong passion for quizzing and knowledge across diverse domains — Physics, Chemistry, Biology, Computer Science, Mathematics, History, Geography, Geopolitics, Economics, Mythology, and Sports (particularly Cricket, Kabaddi, Field Hockey, Lawn Tennis, Badminton, WWE, and major events like the Olympics, Commonwealth Games, and Asian Games). Travelling across India has further enriched my understanding of diverse ethnicities, multilingual cultures, and this beautiful land we call home.
-            </p>
-            <p>
-              My values have been shaped by my upbringing — my parents instilled in me a commitment to honesty, integrity, and a disciplined, high-quality way of living, with a genuine desire to contribute to society and add value to the lives of those around me.
-            </p>
-            <p>
-              For my undergraduate education, I pursued B.E. in Computer Science at PSG College of Technology, Coimbatore. Adapting to South Indian culture — its lifestyle, food, and language — was initially a challenge after growing up in a Bengali household, but it turned out to be one of the most enriching experiences of my life. I found my footing with the help of wonderful friends, particularly my close-knit group, the "5 Gandus", who were my lifeline through college.
-            </p>
-            <p>
-              At PSG, I continued to push boundaries. In 2023, I appeared for the GATE CSE exam, securing an AIR of 590 — ranking 1st in my college, remarkably while still in my 3rd year, outscoring several final-year seniors. I also won the college IPL Auction for two consecutive years alongside my teammates — a competition where I take particular pride in my stats-driven, analytical approach to the game.
-            </p>
-            <p>
-              Academically and professionally, Chemistry remains my favourite subject — and I am equally comfortable teaching Quants/LRDI for CAT, OS/DBMS/Networks/C for GATE, and guiding students through competitive syllabi.
-            </p>
-            <p>
-              I was placed at Hewlett Packard Enterprise (HPE), Bengaluru, as an Intern + Full-Time Graduate, and relocated there in February 2024. Life in Bengaluru has been a rollercoaster — professionally fulfilling and personally testing in equal measure. At HPE, I have worked as a Systems Software QA Engineer, demonstrating competence in collaboration, innovation, and strong work ethics, for which I have been recognised with multiple Starpoints awards.
-            </p>
-            <p>
-              Looking ahead, I am preparing for a 2-year MBA programme through CAT/XAT, with my sights set on the top 7 IIMs, XLRI Jamshedpur, and SPJIMR Mumbai. I also plan to appear for SSC-CGL and UPSC — less for the destination and more for the joy of continuous learning, self-testing, and broadening my understanding of the world.
-            </p>
-            <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent pt-4">
-              Life so far has been a remarkable journey — and I'm only just getting started.
-            </p>
+            {loading ? (
+              <div className="space-y-4 animate-pulse">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-4 bg-white/10 rounded-full" style={{ width: `${85 + Math.random() * 15}%` }} />
+                ))}
+              </div>
+            ) : (
+              <>
+                {paragraphs.map((para, index) => {
+                  // Last paragraph gets gradient treatment
+                  const isLast = index === paragraphs.length - 1;
+                  return (
+                    <p
+                      key={index}
+                      className={isLast
+                        ? "text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent pt-4"
+                        : ""
+                      }
+                    >
+                      {para}
+                    </p>
+                  );
+                })}
+              </>
+            )}
           </motion.div>
 
-          <motion.div 
+          {/* Photos — unchanged */}
+          <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -71,7 +101,7 @@ export function About() {
             <div className="sticky top-32 grid gap-6">
               <div className="glass-card rounded-3xl p-2 rotate-2 hover:rotate-0 transition-transform duration-500 shadow-xl shadow-primary/10">
                 <div className="aspect-[4/5] rounded-2xl overflow-hidden relative">
-                  <img 
+                  <img
                     src={`${import.meta.env.BASE_URL}photo-suit.png`}
                     alt="Saumarghya Formal"
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
@@ -90,7 +120,7 @@ export function About() {
 
               <div className="glass-card rounded-3xl p-2 -rotate-2 hover:rotate-0 transition-transform duration-500 shadow-xl shadow-accent/10 translate-x-4 lg:-translate-y-12">
                 <div className="aspect-[4/3] rounded-2xl overflow-hidden relative">
-                  <img 
+                  <img
                     src={`${import.meta.env.BASE_URL}photo-casual.png`}
                     alt="Saumarghya Casual"
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
@@ -108,7 +138,6 @@ export function About() {
               </div>
             </div>
           </motion.div>
-
         </div>
       </div>
     </section>
