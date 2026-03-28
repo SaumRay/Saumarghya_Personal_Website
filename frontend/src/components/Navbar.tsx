@@ -5,14 +5,14 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 
 const navItems = [
-  { name: "Home", href: "#home" },
-  { name: "About", href: "#about" },
-  { name: "Education", href: "#education" },
-  { name: "Skills", href: "#skills" },
-  { name: "Experience", href: "#experience" },
-  { name: "Projects", href: "#projects" },
-  { name: "Interests", href: "#interests" },
-  { name: "Contact", href: "#contact" },
+  { name: "Home", href: "home" },
+  { name: "About", href: "about" },
+  { name: "Education", href: "education" },
+  { name: "Skills", href: "skills" },
+  { name: "Experience", href: "experience" },
+  { name: "Projects", href: "projects" },
+  { name: "Interests", href: "interests" },
+  { name: "Contact", href: "contact" },
 ];
 
 export function Navbar() {
@@ -26,6 +26,18 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const scrollToSection = (id: string) => {
+    setMobileMenuOpen(false);
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        const offset = 80; // navbar height
+        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top, behavior: "smooth" });
+      }
+    }, 100); // small delay lets mobile menu close first
+  };
+
   return (
     <motion.nav
       initial={{ y: -100 }}
@@ -38,21 +50,24 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          <a href="#home" className="text-2xl font-display font-bold text-foreground relative group">
+          <button
+            onClick={() => scrollToSection("home")}
+            className="text-2xl font-display font-bold text-foreground relative group"
+          >
             SR<span className="text-primary">.</span>
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full"></span>
-          </a>
+          </button>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.name}
-                href={item.href}
+                onClick={() => scrollToSection(item.href)}
                 className="px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground rounded-lg hover:bg-foreground/5 transition-colors"
               >
                 {item.name}
-              </a>
+              </button>
             ))}
 
             {/* Dark/Light Toggle */}
@@ -86,12 +101,12 @@ export function Navbar() {
               </AnimatePresence>
             </button>
 
-            <a
-              href="#contact"
+            <button
+              onClick={() => scrollToSection("contact")}
               className="ml-2 px-5 py-2 rounded-full font-semibold text-sm bg-foreground/10 hover:bg-foreground/20 border border-foreground/20 text-foreground transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,240,255,0.3)] hover:-translate-y-0.5"
             >
               Let's Talk
-            </a>
+            </button>
           </div>
 
           {/* Mobile: toggle + hamburger */}
@@ -128,14 +143,13 @@ export function Navbar() {
           >
             <div className="px-4 py-6 flex flex-col space-y-4">
               {navItems.map((item) => (
-                <a
+                <button
                   key={item.name}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-lg font-medium text-foreground/80 hover:text-primary transition-colors"
+                  onClick={() => scrollToSection(item.href)}
+                  className="text-left text-lg font-medium text-foreground/80 hover:text-primary transition-colors"
                 >
                   {item.name}
-                </a>
+                </button>
               ))}
             </div>
           </motion.div>
