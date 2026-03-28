@@ -38,12 +38,12 @@ function ItemCard({ item, highlight }: { item: FavouriteItem; highlight?: boolea
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {highlight && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
             <h3 className="font-semibold text-foreground">{item.name}</h3>
           </div>
           {item.rating && (
-            <span className="flex items-center gap-1 text-xs text-yellow-400 flex-shrink-0">
+            <span className="flex items-center gap-1 text-xs text-yellow-400 flex-shrink-0 text-right max-w-[45%] break-words">
               ⭐ {item.rating}
             </span>
           )}
