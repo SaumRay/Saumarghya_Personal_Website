@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAdminAuth, API_BASE } from "@/hooks/use-admin-auth";
-import { Plus, Trash2, Save, Heart, Star } from "lucide-react";
+import { Plus, Trash2, Save, Heart, Star, Pencil, X, Upload } from "lucide-react";
 
 interface FavouriteItem {
   name: string;
@@ -22,52 +22,26 @@ interface FavouriteCategory {
   order: number;
 }
 
-const emptyItem = (): FavouriteItem => ({
-  name: "", description: "", imageUrl: "", rating: "", isTop3: false, order: 0
+const emptyItem = () => ({
+  name: "", description: "", imageUrl: "", rating: "",
+  isTop3: false, order: 0, sport: "", itemType: ""
 });
 
-// Category-aware placeholders
 const getPlaceholders = (label: string) => {
   const l = label.toLowerCase();
   if (l.includes("movie") || l.includes("show"))
-    return {
-      name: "e.g. Interstellar",
-      desc: "Why you love it",
-      rating: "e.g. 9/10",
-      image: "Poster URL (optional)",
-    };
+    return { name: "e.g. Interstellar", desc: "Why you love it", rating: "e.g. 9/10" };
   if (l.includes("music") || l.includes("artist"))
-    return {
-      name: "e.g. Arijit Singh",
-      desc: "What makes them special",
-      rating: "e.g. 10/10",
-      image: "Artist image URL (optional)",
-    };
+    return { name: "e.g. Arijit Singh", desc: "What makes them special", rating: "e.g. 10/10" };
   if (l.includes("food") || l.includes("cuisine"))
-    return {
-      name: "e.g. Butter Chicken",
-      desc: "Where you love having it",
-      rating: "e.g. 9/10",
-      image: "Food image URL (optional)",
-    };
-  if (l.includes("sport") || l.includes("team") || l.includes("player") || l.includes("cricket") || l.includes("football"))
-    return {
-      name: "e.g. Virat Kohli / CSK / Kabaddi",
-      desc: "Player, team, or sport — why they're special",
-      rating: "e.g. GOAT",
-      image: "Image URL (optional)",
-    };
-  return {
-    name: "Name *",
-    desc: "Why you love it (optional)",
-    rating: "Rating (optional)",
-    image: "Image URL (optional)",
-  };
+    return { name: "e.g. Butter Chicken", desc: "Where you love having it", rating: "e.g. 9/10" };
+  if (l.includes("sport") || l.includes("team"))
+    return { name: "e.g. Virat Kohli / CSK", desc: "Why they're special to you", rating: "e.g. GOAT" };
+  return { name: "Name *", desc: "Why you love it (optional)", rating: "Rating (optional)" };
 };
 
-// Sport sub-categories for the Sports & Teams section
 const SPORT_SUBCATEGORIES = [
-  { value: "", label: "— General (no sport tag) —" },
+  { value: "", label: "— Select sport —" },
   { value: "Cricket", label: "🏏 Cricket" },
   { value: "Football", label: "⚽ Football" },
   { value: "Kabaddi", label: "🤼 Kabaddi" },
@@ -76,7 +50,9 @@ const SPORT_SUBCATEGORIES = [
   { value: "Badminton", label: "🏸 Badminton" },
   { value: "WWE", label: "🥊 WWE" },
   { value: "Formula 1", label: "🏎️ Formula 1" },
-  { value: "Other", label: "🏅 Other" },
+  { value: "Rugby", label: "🏉 Rugby" },
+  { value: "Olympics", label: "🏅 Olympics" },
+  { value: "Other", label: "🎯 Other" },
 ];
 
 const SPORT_ITEM_TYPES = [
@@ -86,22 +62,28 @@ const SPORT_ITEM_TYPES = [
   { value: "Sport", label: "🎯 Sport (general)" },
 ];
 
+type ItemFormState = ReturnType<typeof emptyItem>;
+
 export function AdminFavourites() {
   const { token } = useAdminAuth();
   const [categories, setCategories] = useState<FavouriteCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>("");
-  const [newItem, setNewItem] = useState<FavouriteItem & { sport?: string; itemType?: string }>(
-    { ...emptyItem(), sport: "", itemType: "" }
-  );
+  const [newItem, setNewItem] = useState<ItemFormState>(emptyItem());
   const [addingItem, setAddingItem] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editItem, setEditItem] = useState<ItemFormState>(emptyItem());
   const [saving, setSaving] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [msg, setMsg] = useState("");
   const [noteEdit, setNoteEdit] = useState<Record<string, string>>({});
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [newCatLabel, setNewCatLabel] = useState("");
   const [newCatEmoji, setNewCatEmoji] = useState("⭐");
+
+  const addImageRef = useRef<HTMLInputElement>(null);
+  const editImageRef = useRef<HTMLInputElement>(null);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
@@ -125,6 +107,43 @@ export function AdminFavourites() {
   };
 
   useEffect(() => { fetchCategories(false); }, []);
+
+  // Upload image to S3 and return URL
+  const uploadImage = async (file: File): Promise<string> => {
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch(`${API_BASE}/api/favourites/upload-image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const d = await res.json();
+      if (d.success) return d.url;
+      flash("Image upload failed");
+      return "";
+    } catch {
+      flash("Image upload error");
+      return "";
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleAddImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await uploadImage(file);
+    if (url) setNewItem(i => ({ ...i, imageUrl: url }));
+  };
+
+  const handleEditImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await uploadImage(file);
+    if (url) setEditItem(i => ({ ...i, imageUrl: url }));
+  };
 
   const saveNote = async (catId: string) => {
     setSavingNote(true);
@@ -172,35 +191,28 @@ export function AdminFavourites() {
     } catch { flash("Error"); }
   };
 
-  const isSportsCategory = (label: string) => label.toLowerCase().includes("sport");
+  const isSportsCategory = (label: string) =>
+    label.toLowerCase().includes("sport") || label.toLowerCase().includes("team");
 
-  const buildItemName = () => {
-    // For sports, prefix name with [Sport - Type] for clarity
-    if (isSportsCategory(activeCat?.label || "") && newItem.sport && newItem.itemType) {
-      return `${newItem.name}`;
+  const buildDescription = (item: ItemFormState, isSports: boolean) => {
+    if (isSports && (item.sport || item.itemType)) {
+      const tag = [item.itemType, item.sport].filter(Boolean).join(" • ");
+      return item.description?.trim() ? `${tag} — ${item.description}` : tag;
     }
-    return newItem.name;
-  };
-
-  const buildItemDescription = () => {
-    if (isSportsCategory(activeCat?.label || "") && (newItem.sport || newItem.itemType)) {
-      const tag = [newItem.itemType, newItem.sport].filter(Boolean).join(" • ");
-      const desc = newItem.description?.trim();
-      return desc ? `${tag} — ${desc}` : tag;
-    }
-    return newItem.description || "";
+    return item.description || "";
   };
 
   const addItem = async () => {
     if (!newItem.name.trim()) return flash("Name is required");
+    const isSports = isSportsCategory(activeCat?.label || "");
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/favourites/${activeCategory}/items`, {
         method: "POST",
         headers,
         body: JSON.stringify({
-          name: buildItemName(),
-          description: buildItemDescription(),
+          name: newItem.name,
+          description: buildDescription(newItem, isSports),
           imageUrl: newItem.imageUrl || "",
           rating: newItem.rating || "",
           isTop3: newItem.isTop3,
@@ -209,10 +221,51 @@ export function AdminFavourites() {
       });
       const d = await res.json();
       if (d.success) {
-        setNewItem({ ...emptyItem(), sport: "", itemType: "" });
+        setNewItem(emptyItem());
         setAddingItem(false);
         fetchCategories(true);
         flash("Item added!");
+      } else flash(d.message || "Failed");
+    } catch { flash("Error"); }
+    setSaving(false);
+  };
+
+  const startEdit = (item: FavouriteItem, index: number) => {
+    setEditingIndex(index);
+    setEditItem({
+      name: item.name,
+      description: item.description || "",
+      imageUrl: item.imageUrl || "",
+      rating: item.rating || "",
+      isTop3: item.isTop3,
+      order: item.order,
+      sport: "",
+      itemType: "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editItem.name.trim()) return flash("Name is required");
+    if (editingIndex === null) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/favourites/${activeCategory}/items/${editingIndex}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          name: editItem.name,
+          description: editItem.description,
+          imageUrl: editItem.imageUrl,
+          rating: editItem.rating,
+          isTop3: editItem.isTop3,
+          order: editItem.order,
+        }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setEditingIndex(null);
+        fetchCategories(true);
+        flash("Item updated!");
       } else flash(d.message || "Failed");
     } catch { flash("Error"); }
     setSaving(false);
@@ -235,8 +288,7 @@ export function AdminFavourites() {
     if (!confirm("Delete this item?")) return;
     try {
       const res = await fetch(`${API_BASE}/api/favourites/${catId}/items/${itemIndex}`, {
-        method: "DELETE",
-        headers,
+        method: "DELETE", headers,
       });
       const d = await res.json();
       if (d.success) { fetchCategories(true); flash("Deleted"); }
@@ -247,6 +299,55 @@ export function AdminFavourites() {
   const top3Count = activeCat?.items.filter(i => i.isTop3).length || 0;
   const ph = getPlaceholders(activeCat?.label || "");
   const isSports = isSportsCategory(activeCat?.label || "");
+
+  // Reusable image upload field
+  const ImageUploadField = ({
+    value, fileRef, onChange, onPick
+  }: {
+    value: string;
+    fileRef: React.RefObject<HTMLInputElement| null>;
+    onChange: (url: string) => void;
+    onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  }) => (
+    <div className="space-y-2">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        onChange={onPick}
+        className="hidden"
+      />
+      {value ? (
+        <div className="flex items-center gap-3">
+          <img src={value} className="w-14 h-14 rounded-xl object-cover border border-white/10" />
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploadingImage}
+              className="px-3 py-1.5 rounded-lg bg-foreground/5 border border-white/10 text-foreground/60 text-xs hover:bg-foreground/10 transition-all"
+            >
+              {uploadingImage ? "Uploading..." : "Change Image"}
+            </button>
+            <button
+              onClick={() => onChange("")}
+              className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 transition-all"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploadingImage}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground/60 text-sm hover:bg-foreground/10 transition-all w-full justify-center"
+        >
+          <Upload className="w-4 h-4" />
+          {uploadingImage ? "Uploading..." : "Upload Image (optional)"}
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="max-w-4xl">
@@ -285,17 +386,12 @@ export function AdminFavourites() {
             />
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={createCategory}
-              disabled={saving}
-              className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
-            >
+            <button onClick={createCategory} disabled={saving}
+              className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all">
               Create
             </button>
-            <button
-              onClick={() => { setCreatingCategory(false); setNewCatLabel(""); setNewCatEmoji("⭐"); }}
-              className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
-            >
+            <button onClick={() => { setCreatingCategory(false); setNewCatLabel(""); setNewCatEmoji("⭐"); }}
+              className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all">
               Cancel
             </button>
           </div>
@@ -319,7 +415,8 @@ export function AdminFavourites() {
                   onClick={() => {
                     setActiveCategory(cat._id);
                     setAddingItem(false);
-                    setNewItem({ ...emptyItem(), sport: "", itemType: "" });
+                    setEditingIndex(null);
+                    setNewItem(emptyItem());
                   }}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
                     activeCategory === cat._id
@@ -330,10 +427,8 @@ export function AdminFavourites() {
                   {cat.emoji} {cat.label}
                 </button>
                 {!cat.isDefault && (
-                  <button
-                    onClick={() => deleteCategory(cat._id)}
-                    className="w-7 h-7 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors"
-                  >
+                  <button onClick={() => deleteCategory(cat._id)}
+                    className="w-7 h-7 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -356,15 +451,12 @@ export function AdminFavourites() {
                   placeholder={
                     isSports
                       ? "e.g. Huge cricket fan, follow IPL closely. CSK for life 💛"
-                      : `e.g. I prefer psychological thrillers over action films...`
+                      : "e.g. I prefer psychological thrillers over action films..."
                   }
                   className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
-                <button
-                  onClick={() => saveNote(activeCat._id)}
-                  disabled={savingNote}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all disabled:opacity-50"
-                >
+                <button onClick={() => saveNote(activeCat._id)} disabled={savingNote}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all disabled:opacity-50">
                   <Save className="w-3.5 h-3.5" />
                   {savingNote ? "Saving..." : "Save Note"}
                 </button>
@@ -380,12 +472,10 @@ export function AdminFavourites() {
                         {activeCat.items.length} item{activeCat.items.length !== 1 ? "s" : ""}
                       </span>
                     </h3>
-                    <p className="text-xs text-foreground/40 mt-0.5">
-                      ⭐ Top 3 selected: {top3Count}/3
-                    </p>
+                    <p className="text-xs text-foreground/40 mt-0.5">⭐ Top 3 selected: {top3Count}/3</p>
                   </div>
                   <button
-                    onClick={() => { setAddingItem(true); setNewItem({ ...emptyItem(), sport: "", itemType: "" }); }}
+                    onClick={() => { setAddingItem(true); setEditingIndex(null); setNewItem(emptyItem()); }}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Item
@@ -395,75 +485,53 @@ export function AdminFavourites() {
                 {/* Add item form */}
                 {addingItem && (
                   <div className="px-5 py-4 border-b border-white/10 bg-foreground/5 space-y-3">
+                    <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wide">New Item</p>
 
-                    {/* Sports-specific fields */}
                     {isSports && (
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs text-foreground/50 mb-1 block">Sport</label>
-                          <select
-                            value={newItem.sport || ""}
+                          <select value={newItem.sport}
                             onChange={e => setNewItem(i => ({ ...i, sport: e.target.value }))}
-                            className="w-full px-3 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                          >
-                            {SPORT_SUBCATEGORIES.map(s => (
-                              <option key={s.value} value={s.value}>{s.label}</option>
-                            ))}
+                            className="w-full px-3 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none">
+                            {SPORT_SUBCATEGORIES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select>
                         </div>
                         <div>
                           <label className="text-xs text-foreground/50 mb-1 block">Type</label>
-                          <select
-                            value={newItem.itemType || ""}
+                          <select value={newItem.itemType}
                             onChange={e => setNewItem(i => ({ ...i, itemType: e.target.value }))}
-                            className="w-full px-3 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                          >
-                            {SPORT_ITEM_TYPES.map(t => (
-                              <option key={t.value} value={t.value}>{t.label}</option>
-                            ))}
+                            className="w-full px-3 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none">
+                            {SPORT_ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                           </select>
                         </div>
                       </div>
                     )}
 
-                    <input
-                      value={newItem.name}
+                    <input value={newItem.name}
                       onChange={e => setNewItem(i => ({ ...i, name: e.target.value }))}
                       placeholder={ph.name}
-                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                    />
-                    <input
-                      value={newItem.description}
+                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                    <input value={newItem.description}
                       onChange={e => setNewItem(i => ({ ...i, description: e.target.value }))}
                       placeholder={ph.desc}
-                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        value={newItem.imageUrl}
-                        onChange={e => setNewItem(i => ({ ...i, imageUrl: e.target.value }))}
-                        placeholder={ph.image}
-                        className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                      />
-                      <input
-                        value={newItem.rating}
-                        onChange={e => setNewItem(i => ({ ...i, rating: e.target.value }))}
-                        placeholder={ph.rating}
-                        className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                      />
-                    </div>
+                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                    <input value={newItem.rating}
+                      onChange={e => setNewItem(i => ({ ...i, rating: e.target.value }))}
+                      placeholder={ph.rating}
+                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
 
-                    {/* Top 3 toggle */}
+                    <ImageUploadField
+                      value={newItem.imageUrl || ""}
+                      fileRef={addImageRef}
+                      onChange={(url) => setNewItem(i => ({ ...i, imageUrl: url }))}
+                      onPick={handleAddImagePick}
+                    />
+
                     <label className="flex items-center gap-3 cursor-pointer w-fit">
-                      <div
-                        onClick={() => setNewItem(i => ({ ...i, isTop3: !i.isTop3 }))}
-                        className={`w-10 h-5 rounded-full transition-all relative cursor-pointer ${
-                          newItem.isTop3 ? "bg-yellow-400/80" : "bg-foreground/20"
-                        }`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${
-                          newItem.isTop3 ? "left-5" : "left-0.5"
-                        }`} />
+                      <div onClick={() => setNewItem(i => ({ ...i, isTop3: !i.isTop3 }))}
+                        className={`w-10 h-5 rounded-full transition-all relative cursor-pointer ${newItem.isTop3 ? "bg-yellow-400/80" : "bg-foreground/20"}`}>
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newItem.isTop3 ? "left-5" : "left-0.5"}`} />
                       </div>
                       <span className="text-xs text-foreground/60">
                         Mark as Top 3 pick {top3Count >= 3 && !newItem.isTop3 ? "(limit reached)" : ""}
@@ -471,17 +539,12 @@ export function AdminFavourites() {
                     </label>
 
                     <div className="flex gap-2">
-                      <button
-                        onClick={addItem}
-                        disabled={saving}
-                        className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all disabled:opacity-50"
-                      >
+                      <button onClick={addItem} disabled={saving}
+                        className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all disabled:opacity-50">
                         <Save className="w-3.5 h-3.5 inline mr-1" /> Save Item
                       </button>
-                      <button
-                        onClick={() => { setAddingItem(false); setNewItem({ ...emptyItem(), sport: "", itemType: "" }); }}
-                        className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
-                      >
+                      <button onClick={() => { setAddingItem(false); setNewItem(emptyItem()); }}
+                        className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all">
                         Cancel
                       </button>
                     </div>
@@ -496,51 +559,93 @@ export function AdminFavourites() {
                 ) : (
                   <div className="divide-y divide-white/5">
                     {activeCat.items.map((item, index) => (
-                      <div
-                        key={index}
-                        className={`flex items-center gap-4 px-5 py-3 ${
-                          item.isTop3 ? "bg-yellow-400/5" : ""
-                        }`}
-                      >
-                        {item.imageUrl && (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {item.isTop3 && (
-                              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+                      <div key={index}>
+                        {/* View row */}
+                        {editingIndex !== index ? (
+                          <div className={`flex items-center gap-4 px-5 py-3 ${item.isTop3 ? "bg-yellow-400/5" : ""}`}>
+                            {item.imageUrl && (
+                              <img src={item.imageUrl} alt={item.name}
+                                className="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0" />
                             )}
-                            <p className="font-medium text-foreground text-sm">{item.name}</p>
-                            {item.rating && (
-                              <span className="text-xs text-yellow-400">⭐ {item.rating}</span>
-                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {item.isTop3 && <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
+                                <p className="font-medium text-foreground text-sm">{item.name}</p>
+                                {item.rating && <span className="text-xs text-yellow-400">⭐ {item.rating}</span>}
+                              </div>
+                              {item.description && (
+                                <p className="text-foreground/50 text-xs mt-0.5">{item.description}</p>
+                              )}
+                            </div>
+                            {/* Action buttons */}
+                            <button onClick={() => startEdit(item, index)}
+                              title="Edit"
+                              className="w-8 h-8 rounded-lg bg-foreground/5 text-foreground/40 hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-colors flex-shrink-0">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => toggleTop3(activeCat._id, index, item.isTop3)}
+                              title={item.isTop3 ? "Remove from Top 3" : "Add to Top 3"}
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${
+                                item.isTop3 ? "bg-yellow-400/20 text-yellow-400" : "bg-foreground/5 text-foreground/30 hover:text-yellow-400 hover:bg-yellow-400/10"
+                              }`}>
+                              <Star className={`w-3.5 h-3.5 ${item.isTop3 ? "fill-yellow-400" : ""}`} />
+                            </button>
+                            <button onClick={() => deleteItem(activeCat._id, index)}
+                              className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors flex-shrink-0">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                          {item.description && (
-                            <p className="text-foreground/50 text-xs mt-0.5">{item.description}</p>
-                          )}
-                        </div>
-                        {/* Top 3 toggle */}
-                        <button
-                          onClick={() => toggleTop3(activeCat._id, index, item.isTop3)}
-                          title={item.isTop3 ? "Remove from Top 3" : "Add to Top 3"}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${
-                            item.isTop3
-                              ? "bg-yellow-400/20 text-yellow-400"
-                              : "bg-foreground/5 text-foreground/30 hover:text-yellow-400 hover:bg-yellow-400/10"
-                          }`}
-                        >
-                          <Star className={`w-3.5 h-3.5 ${item.isTop3 ? "fill-yellow-400" : ""}`} />
-                        </button>
-                        <button
-                          onClick={() => deleteItem(activeCat._id, index)}
-                          className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors flex-shrink-0"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        ) : (
+                          /* Inline edit form */
+                          <div className="px-5 py-4 bg-foreground/5 space-y-3 border-l-2 border-primary/40">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-semibold text-primary uppercase tracking-wide">Editing Item</p>
+                              <button onClick={() => setEditingIndex(null)}
+                                className="text-foreground/40 hover:text-foreground">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <input value={editItem.name}
+                              onChange={e => setEditItem(i => ({ ...i, name: e.target.value }))}
+                              placeholder={ph.name}
+                              className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                            <input value={editItem.description}
+                              onChange={e => setEditItem(i => ({ ...i, description: e.target.value }))}
+                              placeholder={ph.desc}
+                              className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                            <input value={editItem.rating}
+                              onChange={e => setEditItem(i => ({ ...i, rating: e.target.value }))}
+                              placeholder={ph.rating}
+                              className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+
+                            <ImageUploadField
+                              value={editItem.imageUrl || ""}
+                              fileRef={editImageRef}
+                              onChange={(url) => setEditItem(i => ({ ...i, imageUrl: url }))}
+                              onPick={handleEditImagePick}
+                            />
+
+                            <label className="flex items-center gap-3 cursor-pointer w-fit">
+                              <div onClick={() => setEditItem(i => ({ ...i, isTop3: !i.isTop3 }))}
+                                className={`w-10 h-5 rounded-full transition-all relative cursor-pointer ${editItem.isTop3 ? "bg-yellow-400/80" : "bg-foreground/20"}`}>
+                                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editItem.isTop3 ? "left-5" : "left-0.5"}`} />
+                              </div>
+                              <span className="text-xs text-foreground/60">Top 3 pick</span>
+                            </label>
+
+                            <div className="flex gap-2">
+                              <button onClick={saveEdit} disabled={saving}
+                                className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all disabled:opacity-50">
+                                <Save className="w-3.5 h-3.5 inline mr-1" /> Save Changes
+                              </button>
+                              <button onClick={() => setEditingIndex(null)}
+                                className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all">
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

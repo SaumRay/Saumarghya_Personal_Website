@@ -49,13 +49,8 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
     if (exists) { res.status(400).json({ success: false, message: "Category already exists" }); return; }
 
     const cat = await FavouriteCategory.create({
-      category,
-      label,
-      emoji: emoji || "⭐",
-      note: note || "",
-      isDefault: false,
-      order: order || 0,
-      items: [],
+      category, label, emoji: emoji || "⭐",
+      note: note || "", isDefault: false, order: order || 0, items: [],
     });
     res.status(201).json({ success: true, data: cat });
   } catch (error) {
@@ -93,7 +88,6 @@ export const addItem = async (req: Request, res: Response): Promise<void> => {
     const cat = await FavouriteCategory.findById(req.params.id);
     if (!cat) { res.status(404).json({ success: false, message: "Category not found" }); return; }
 
-    // Max 3 top items
     if (isTop3) {
       const top3Count = cat.items.filter(i => i.isTop3).length;
       if (top3Count >= 3) {
@@ -103,12 +97,9 @@ export const addItem = async (req: Request, res: Response): Promise<void> => {
     }
 
     cat.items.push({
-      name,
-      description: description || "",
-      imageUrl: imageUrl || "",
-      rating: rating || "",
-      isTop3: isTop3 || false,
-      order: order || 0,
+      name, description: description || "",
+      imageUrl: imageUrl || "", rating: rating || "",
+      isTop3: isTop3 || false, order: order || 0,
     });
     cat.items.sort((a, b) => a.order - b.order);
     await cat.save();
@@ -128,7 +119,6 @@ export const updateItem = async (req: Request, res: Response): Promise<void> => 
       res.status(404).json({ success: false, message: "Item not found" }); return;
     }
 
-    // Enforce max 3 top3 when toggling on
     if (req.body.isTop3 === true && !cat.items[itemIndex].isTop3) {
       const top3Count = cat.items.filter(i => i.isTop3).length;
       if (top3Count >= 3) {
@@ -149,10 +139,23 @@ export const deleteItem = async (req: Request, res: Response): Promise<void> => 
   try {
     const cat = await FavouriteCategory.findById(req.params.id);
     if (!cat) { res.status(404).json({ success: false, message: "Category not found" }); return; }
-
     cat.items = cat.items.filter((_, i) => i !== parseInt(req.params.itemIndex));
     await cat.save();
     res.json({ success: true, data: cat });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
+
+// ── Image upload ──────────────────────────────────────────
+export const uploadFavouriteImageController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const file = req.file as Express.MulterS3.File;
+    if (!file) {
+      res.status(400).json({ success: false, message: "No file uploaded" });
+      return;
+    }
+    res.status(201).json({ success: true, url: file.location, key: file.key });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }

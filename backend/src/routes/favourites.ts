@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
+import { uploadFavouriteImage } from "../middleware/upload";
 import {
   getAllFavourites,
   getFavouriteByCategory,
@@ -9,6 +10,7 @@ import {
   addItem,
   updateItem,
   deleteItem,
+  uploadFavouriteImageController,
 } from "../controllers/favouriteController";
 
 const router = Router();
@@ -16,6 +18,9 @@ const router = Router();
 // Public
 router.get("/", getAllFavourites);
 router.get("/:category", getFavouriteByCategory);
+
+// Admin — image upload (must be before /:id routes)
+router.post("/upload-image", authMiddleware, uploadFavouriteImage.single("image"), uploadFavouriteImageController);
 
 // Admin — categories
 router.post("/", authMiddleware, createCategory);

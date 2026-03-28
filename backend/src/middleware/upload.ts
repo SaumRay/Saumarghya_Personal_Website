@@ -70,7 +70,6 @@ export const uploadAudio = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
-// ── Video upload ──────────────────────────────────────────
 const allowedVideoMimeTypes = [
   "video/mp4", "video/quicktime", "video/x-msvideo",
   "video/x-matroska", "video/webm", "video/mpeg"
@@ -96,4 +95,19 @@ export const uploadVideo = multer({
   }),
   fileFilter: videoFileFilter,
   limits: { fileSize: 100 * 1024 * 1024 },
+});
+
+// ── Favourite item images ─────────────────────────────────
+export const uploadFavouriteImage = multer({
+  storage: multerS3({
+    s3,
+    bucket: S3_BUCKET(),
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (_req, file, cb) => {
+      const ext = file.originalname.split(".").pop() || "jpg";
+      cb(null, `favourites/${uuidv4()}.${ext}`);
+    },
+  }),
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
