@@ -301,6 +301,7 @@ export function AdminFavourites() {
   };
 
   const saveEdit = async () => {
+    console.log("saveEdit called", { editingIndex, activeCategory, editItem });
     if (!editItem.name.trim()) return flash("Name is required");
     if (editingIndex === null) return;
     const isMusic = isMusicCategory(activeCat?.label || "");
