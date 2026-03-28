@@ -1,0 +1,325 @@
+import { useEffect, useState } from "react";
+import { useAdminAuth, API_BASE } from "@/hooks/use-admin-auth";
+import { Plus, Trash2, Save, ChevronDown, ChevronUp, Heart } from "lucide-react";
+
+interface FavouriteItem {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  rating?: string;
+  order: number;
+}
+
+interface FavouriteCategory {
+  _id: string;
+  category: string;
+  label: string;
+  emoji: string;
+  isDefault: boolean;
+  items: FavouriteItem[];
+  order: number;
+}
+
+const emptyItem = (): FavouriteItem => ({ name: "", description: "", imageUrl: "", rating: "", order: 0 });
+
+export function AdminFavourites() {
+  const { token } = useAdminAuth();
+  const [categories, setCategories] = useState<FavouriteCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string>("");
+  const [newItem, setNewItem] = useState<FavouriteItem>(emptyItem());
+  const [addingItem, setAddingItem] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  // New category form
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCatLabel, setNewCatLabel] = useState("");
+  const [newCatEmoji, setNewCatEmoji] = useState("⭐");
+
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
+
+  const fetchCategories = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/favourites`);
+      const d = await res.json();
+      if (d.success) {
+        setCategories(d.data);
+        if (!activeCategory && d.data.length > 0) setActiveCategory(d.data[0]._id);
+      }
+    } catch { }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchCategories(); }, []);
+
+  const createCategory = async () => {
+    if (!newCatLabel.trim()) return flash("Label is required");
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/favourites`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ label: newCatLabel.trim(), emoji: newCatEmoji }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setCreatingCategory(false);
+        setNewCatLabel("");
+        setNewCatEmoji("⭐");
+        fetchCategories();
+        flash("Category created!");
+      } else flash(d.message || "Failed");
+    } catch { flash("Error"); }
+    setSaving(false);
+  };
+
+  const deleteCategory = async (id: string) => {
+    if (!confirm("Delete this category and all its items?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/favourites/${id}`, { method: "DELETE", headers });
+      const d = await res.json();
+      if (d.success) { fetchCategories(); flash("Deleted"); }
+      else flash(d.message || "Cannot delete");
+    } catch { flash("Error"); }
+  };
+
+  const addItem = async () => {
+    if (!newItem.name.trim()) return flash("Name is required");
+    const cat = categories.find(c => c._id === activeCategory);
+    if (!cat) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/favourites/${activeCategory}/items`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(newItem),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setNewItem(emptyItem());
+        setAddingItem(false);
+        fetchCategories();
+        flash("Item added!");
+      } else flash(d.message || "Failed");
+    } catch { flash("Error"); }
+    setSaving(false);
+  };
+
+  const deleteItem = async (catId: string, itemIndex: number) => {
+    if (!confirm("Delete this item?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/favourites/${catId}/items/${itemIndex}`, {
+        method: "DELETE",
+        headers,
+      });
+      const d = await res.json();
+      if (d.success) { fetchCategories(); flash("Deleted"); }
+    } catch { flash("Error"); }
+  };
+
+  const activeCat = categories.find(c => c._id === activeCategory);
+
+  return (
+    <div className="max-w-4xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-bold text-foreground">My Favourites</h2>
+        <button
+          onClick={() => setCreatingCategory(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
+        >
+          <Plus className="w-4 h-4" /> New Category
+        </button>
+      </div>
+
+      {msg && (
+        <div className="mb-4 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm">
+          {msg}
+        </div>
+      )}
+
+      {/* Create category form */}
+      {creatingCategory && (
+        <div className="glass-card rounded-2xl p-5 border border-white/10 mb-6 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">New Category</h3>
+          <div className="flex gap-3">
+            <input
+              value={newCatEmoji}
+              onChange={e => setNewCatEmoji(e.target.value)}
+              placeholder="Emoji"
+              className="w-16 px-3 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none text-center"
+            />
+            <input
+              value={newCatLabel}
+              onChange={e => setNewCatLabel(e.target.value)}
+              placeholder="Category name (e.g. Video Games)"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={createCategory}
+              disabled={saving}
+              className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
+            >
+              Create
+            </button>
+            <button
+              onClick={() => { setCreatingCategory(false); setNewCatLabel(""); setNewCatEmoji("⭐"); }}
+              className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-foreground/50">Loading...</div>
+      ) : categories.length === 0 ? (
+        <div className="glass-card rounded-2xl p-8 border border-white/10 text-foreground/50 text-center">
+          <Heart className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          No categories yet. Create one!
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {/* Category tabs */}
+          <div className="flex gap-2 flex-wrap mb-4">
+            {categories.map(cat => (
+              <div key={cat._id} className="flex items-center gap-1">
+                <button
+                  onClick={() => setActiveCategory(cat._id)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
+                    activeCategory === cat._id
+                      ? "bg-primary/20 text-primary border-primary/20"
+                      : "text-foreground/50 border-white/10 hover:text-foreground"
+                  }`}
+                >
+                  {cat.emoji} {cat.label}
+                </button>
+                {!cat.isDefault && (
+                  <button
+                    onClick={() => deleteCategory(cat._id)}
+                    className="w-7 h-7 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Active category items */}
+          {activeCat && (
+            <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <h3 className="font-semibold text-foreground">
+                  {activeCat.emoji} {activeCat.label}
+                  <span className="text-foreground/40 font-normal text-sm ml-2">
+                    {activeCat.items.length} item{activeCat.items.length !== 1 ? "s" : ""}
+                  </span>
+                </h3>
+                <button
+                  onClick={() => { setAddingItem(true); setNewItem(emptyItem()); }}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Item
+                </button>
+              </div>
+
+              {/* Add item form */}
+              {addingItem && (
+                <div className="px-5 py-4 border-b border-white/10 bg-foreground/5 space-y-3">
+                  <input
+                    value={newItem.name}
+                    onChange={e => setNewItem(i => ({ ...i, name: e.target.value }))}
+                    placeholder="Name (e.g. Interstellar) *"
+                    className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                  />
+                  <input
+                    value={newItem.description}
+                    onChange={e => setNewItem(i => ({ ...i, description: e.target.value }))}
+                    placeholder="Why you love it (optional)"
+                    className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      value={newItem.imageUrl}
+                      onChange={e => setNewItem(i => ({ ...i, imageUrl: e.target.value }))}
+                      placeholder="Image URL (optional)"
+                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                    />
+                    <input
+                      value={newItem.rating}
+                      onChange={e => setNewItem(i => ({ ...i, rating: e.target.value }))}
+                      placeholder="Rating (e.g. 9/10)"
+                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={addItem}
+                      disabled={saving}
+                      className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
+                    >
+                      <Save className="w-3.5 h-3.5 inline mr-1" />
+                      Save Item
+                    </button>
+                    <button
+                      onClick={() => { setAddingItem(false); setNewItem(emptyItem()); }}
+                      className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Items list */}
+              {activeCat.items.length === 0 ? (
+                <div className="px-5 py-8 text-foreground/40 text-sm text-center">
+                  No items yet. Add your first favourite!
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {activeCat.items.map((item, index) => (
+                    <div key={index} className="flex items-center gap-4 px-5 py-3">
+                      {item.imageUrl && (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground text-sm">{item.name}</p>
+                          {item.rating && (
+                            <span className="text-xs text-yellow-400">⭐ {item.rating}</span>
+                          )}
+                        </div>
+                        {item.description && (
+                          <p className="text-foreground/50 text-xs mt-0.5 truncate">{item.description}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteItem(activeCat._id, index)}
+                        className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors flex-shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

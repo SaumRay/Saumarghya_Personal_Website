@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Dumbbell, MapPin, Music, Brain, Flame, BookOpen, Users } from "lucide-react";
+import { Dumbbell, MapPin, Music, Brain, Flame, BookOpen, Users, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 
 export function Interests() {
@@ -121,6 +121,20 @@ export function Interests() {
             <Users className="text-blue-400 w-8 h-8 mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Family & Friends</h3>
             <p className="text-sm text-white/70">Valuing close relationships deeply, staying grounded through the love of my family and my college squad.</p>
+          </motion.div>
+
+          {/* Favourites Block */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.6 }}
+            className="glass-card rounded-3xl p-6 flex flex-col justify-end border-white/10 hover:bg-white/10 transition-colors lg:col-span-2 cursor-pointer"
+            onClick={() => setLocation("/favourites")}
+          >
+            <Heart className="text-rose-400 w-8 h-8 mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">My Favourites</h3>
+            <p className="text-sm text-white/70">Movies, music, food, sports — things I love and swear by.</p>
           </motion.div>
           
         </div>

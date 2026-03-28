@@ -12,6 +12,7 @@ import InterestCategory from "@/pages/InterestCategory";
 import Stats from "@/pages/Stats";
 import FamilyFriends from "@/pages/FamilyFriends";
 import Music from "./pages/Music";
+import Favourites from "@/pages/Favourites";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/stats" component={Stats} />
       <Route path="/family-friends" component={FamilyFriends} />
       <Route path="/music" component={Music} />
+      <Route path="/favourites" component={Favourites} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

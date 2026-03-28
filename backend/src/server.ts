@@ -16,6 +16,8 @@ import galleryRoutes from "./routes/gallery";
 import notesRoutes from "./routes/notes";
 import categoryDetailRoutes from "./routes/categoryDetails";
 import musicRoutes from "./routes/music";
+import favouriteRoutes from "./routes/favourites";
+import { seedDefaults } from "./controllers/favouriteController";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -59,6 +61,7 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/category-details", categoryDetailRoutes);
 app.use("/api/music", musicRoutes);
+app.use("/api/favourites", favouriteRoutes);
 
 app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found" }));
 
@@ -67,7 +70,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ success: false, message: err.message || "Internal server error" });
 });
 
-connectDB().then(() => {
+connectDB().then(async () => {
+  await seedDefaults(); 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);

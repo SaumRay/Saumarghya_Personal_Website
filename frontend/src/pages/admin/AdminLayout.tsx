@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import {
   LayoutDashboard, FolderKanban, Mail, Images, BookOpen,
-  User, LogOut, Menu, X, ChevronRight, BarChart3, Users, Music2
+  User, LogOut, Menu, X, ChevronRight, BarChart3, Users, Music2, Heart
 } from "lucide-react";
 
-export type AdminTab = "overview" | "projects" | "messages" | "gallery" | "notes" | "profile" | "categoryDetails" | "familyFriends" | "music";
+export type AdminTab = "overview" | "projects" | "messages" | "gallery" | "notes" | "profile" | "categoryDetails" | "familyFriends" | "music" | "favourites";
 
 
 interface AdminLayoutProps {
@@ -20,6 +20,7 @@ const navItems: { id: AdminTab; label: string; icon: React.ReactNode; badge?: nu
   { id: "gallery",         label: "Gallery",          icon: <Images className="w-5 h-5" /> },
   { id: "categoryDetails", label: "Category Stats",   icon: <BarChart3 className="w-5 h-5" /> },
   { id: "familyFriends",   label: "Family & Friends", icon: <Users className="w-5 h-5" /> },
+  { id: "favourites",      label: "My Favourites",    icon: <Heart className="w-5 h-5" /> },
   { id: "music",           label: "Music",            icon: <Music2 className="w-5 h-5" /> },
   { id: "notes",           label: "Notes & Posts",    icon: <BookOpen className="w-5 h-5" /> },
   { id: "messages",        label: "Messages",         icon: <Mail className="w-5 h-5" /> },
