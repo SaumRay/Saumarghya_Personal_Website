@@ -82,24 +82,39 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
 
 export const addItem = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, description, imageUrl, rating, isTop3, order } = req.body;
+    const { name, description, imageUrl, rating, isTop3, order, musicType, artistName, songUrl, language } = req.body;
     if (!name) { res.status(400).json({ success: false, message: "Name is required" }); return; }
 
     const cat = await FavouriteCategory.findById(req.params.id);
     if (!cat) { res.status(404).json({ success: false, message: "Category not found" }); return; }
 
     if (isTop3) {
-      const top3Count = cat.items.filter(i => i.isTop3).length;
-      if (top3Count >= 3) {
-        res.status(400).json({ success: false, message: "You can only have 3 Top picks. Remove one first." });
-        return;
+      if (musicType) {
+        const typeTop3Count = cat.items.filter(i => i.isTop3 && i.musicType === musicType).length;
+        if (typeTop3Count >= 3) {
+          res.status(400).json({ success: false, message: `Top 3 ${musicType === "artist" ? "artists" : "songs"} limit reached` });
+          return;
+        }
+      } else {
+        const top3Count = cat.items.filter(i => i.isTop3).length;
+        if (top3Count >= 3) {
+          res.status(400).json({ success: false, message: "You can only have 3 Top picks. Remove one first." });
+          return;
+        }
       }
     }
 
     cat.items.push({
-      name, description: description || "",
-      imageUrl: imageUrl || "", rating: rating || "",
-      isTop3: isTop3 || false, order: order || 0,
+      name,
+      description: description || "",
+      imageUrl: imageUrl || "",
+      rating: rating || "",
+      isTop3: isTop3 || false,
+      order: order || 0,
+      musicType: musicType || undefined,
+      artistName: artistName || "",
+      songUrl: songUrl || "",
+      language: language || "",
     });
     cat.items.sort((a, b) => a.order - b.order);
     await cat.save();
@@ -119,11 +134,27 @@ export const updateItem = async (req: Request, res: Response): Promise<void> => 
       res.status(404).json({ success: false, message: "Item not found" }); return;
     }
 
-    if (req.body.isTop3 === true && !cat.items[itemIndex].isTop3) {
-      const top3Count = cat.items.filter(i => i.isTop3).length;
-      if (top3Count >= 3) {
-        res.status(400).json({ success: false, message: "You can only have 3 Top picks. Remove one first." });
-        return;
+    const currentItem = cat.items[itemIndex];
+    const incomingIsTop3 = req.body.isTop3 === true;
+    const wasAlreadyTop3 = currentItem.isTop3 === true;
+    const musicType = req.body.musicType || currentItem.musicType;
+
+    // Only check limit if we're newly setting isTop3 to true
+    if (incomingIsTop3 && !wasAlreadyTop3) {
+      if (musicType) {
+        const typeTop3Count = cat.items.filter(
+          (i, idx) => i.isTop3 && i.musicType === musicType && idx !== itemIndex
+        ).length;
+        if (typeTop3Count >= 3) {
+          res.status(400).json({ success: false, message: `Top 3 ${musicType === "artist" ? "artists" : "songs"} limit reached` });
+          return;
+        }
+      } else {
+        const top3Count = cat.items.filter((i, idx) => i.isTop3 && idx !== itemIndex).length;
+        if (top3Count >= 3) {
+          res.status(400).json({ success: false, message: "You can only have 3 Top picks. Remove one first." });
+          return;
+        }
       }
     }
 
@@ -147,7 +178,6 @@ export const deleteItem = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-// ── Image upload ──────────────────────────────────────────
 export const uploadFavouriteImageController = async (req: Request, res: Response): Promise<void> => {
   try {
     const file = req.file as Express.MulterS3.File;
