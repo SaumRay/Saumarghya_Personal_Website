@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
+import { useLocation } from "wouter";
 import { API_BASE } from "@/hooks/use-admin-auth";
-import { Play, Pause, Music2, Video, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Pause, Music2, Video, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 
 interface MusicVideo {
   _id: string;
@@ -157,7 +158,6 @@ function AudioPlayer({ track, isActive, onPlay }: {
   );
 }
 
-// New component for locally uploaded video player
 function VideoFilePlayer({ video }: { video: MusicVideoFile }) {
   return (
     <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5">
@@ -178,6 +178,7 @@ function VideoFilePlayer({ video }: { video: MusicVideoFile }) {
 }
 
 export default function Music() {
+  const [, setLocation] = useLocation();
   const [tab, setTab] = useState<"videos" | "audio">("videos");
   const [videoSubTab, setVideoSubTab] = useState<"instagram" | "uploaded">("instagram");
 
@@ -193,7 +194,7 @@ export default function Music() {
     setLoading(true);
     Promise.all([
       fetch(`${API_BASE}/api/music/videos`).then(r => r.json()),
-      fetch(`${API_BASE}/api/music/videofiles`).then(r => r.json()),  // 👈 new
+      fetch(`${API_BASE}/api/music/videofiles`).then(r => r.json()),
       fetch(`${API_BASE}/api/music/audio`).then(r => r.json()),
     ]).then(([vd, vf, ad]) => {
       if (vd.success) setVideos(vd.data || []);
@@ -206,6 +207,14 @@ export default function Music() {
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="max-w-2xl mx-auto">
+
+        {/* Back button */}
+        <button
+          onClick={() => setLocation("/#interests")}
+          className="inline-flex items-center gap-2 mb-6 px-3 py-2 rounded-lg border border-white/10 text-sm text-foreground hover:bg-white/5 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-1">Vocal Music</h1>
@@ -242,7 +251,7 @@ export default function Music() {
         {!loading && tab === "videos" && (
           <div className="space-y-6">
 
-            {/* Video sub-tabs — only show if both have content */}
+            {/* Video sub-tabs */}
             {(videos.length > 0 || videoFiles.length > 0) && (
               <div className="flex gap-2">
                 <button
@@ -375,10 +384,17 @@ export default function Music() {
                 )}
               </div>
             )}
+
+            {/* Empty state when no videos at all */}
+            {videos.length === 0 && videoFiles.length === 0 && (
+              <div className="text-foreground/40 text-sm p-8 text-center border border-white/10 rounded-2xl">
+                No videos added yet.
+              </div>
+            )}
           </div>
         )}
 
-        {/* Audio Tab — unchanged */}
+        {/* Audio Tab */}
         {!loading && tab === "audio" && (
           <div className="space-y-3">
             {tracks.length === 0 ? (

@@ -125,7 +125,7 @@ export default function Favourites() {
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="max-w-5xl mx-auto">
 
-        <button onClick={() => setLocation("/")}
+        <button onClick={() => setLocation("/#interests")}
           className="inline-flex items-center gap-2 mb-6 px-3 py-2 rounded-lg border border-white/10 text-sm text-foreground hover:bg-white/5 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>

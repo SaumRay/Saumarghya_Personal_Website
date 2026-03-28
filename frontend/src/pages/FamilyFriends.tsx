@@ -60,7 +60,7 @@ export default function FamilyFriends() {
             if (selectedAlbum) {
               setSelectedAlbum(null);
             } else {
-              setLocation("/");
+              setLocation("/#interests");
             }
           }}
           className="inline-flex items-center gap-2 mb-6 px-3 py-2 rounded-lg border border-white/10 text-sm text-foreground hover:bg-white/5 transition-colors"
