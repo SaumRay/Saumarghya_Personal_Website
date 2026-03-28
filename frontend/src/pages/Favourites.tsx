@@ -8,6 +8,7 @@ interface FavouriteItem {
   description?: string;
   imageUrl?: string;
   rating?: string;
+  isTop3: boolean;
   order: number;
 }
 
@@ -16,8 +17,43 @@ interface FavouriteCategory {
   category: string;
   label: string;
   emoji: string;
+  note: string;
   items: FavouriteItem[];
   order: number;
+}
+
+function ItemCard({ item, highlight }: { item: FavouriteItem; highlight?: boolean }) {
+  return (
+    <div className={`glass-card rounded-2xl border overflow-hidden hover:border-rose-500/20 transition-all ${
+      highlight ? "border-yellow-400/30 bg-yellow-400/5" : "border-white/10"
+    }`}>
+      {item.imageUrl && (
+        <div className="aspect-video w-full overflow-hidden">
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {highlight && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
+            <h3 className="font-semibold text-foreground">{item.name}</h3>
+          </div>
+          {item.rating && (
+            <span className="flex items-center gap-1 text-xs text-yellow-400 flex-shrink-0">
+              ⭐ {item.rating}
+            </span>
+          )}
+        </div>
+        {item.description && (
+          <p className="text-foreground/50 text-sm mt-1">{item.description}</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function Favourites() {
@@ -40,12 +76,13 @@ export default function Favourites() {
   }, []);
 
   const activeCategory = categories.find(c => c.category === activeTab);
+  const top3Items = activeCategory?.items.filter(i => i.isTop3) || [];
+  const restItems = activeCategory?.items.filter(i => !i.isTop3) || [];
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="max-w-5xl mx-auto">
 
-        {/* Back button */}
         <button
           onClick={() => setLocation("/")}
           className="inline-flex items-center gap-2 mb-6 px-3 py-2 rounded-lg border border-white/10 text-sm text-foreground"
@@ -53,7 +90,6 @@ export default function Favourites() {
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
-        {/* Header */}
         <div className="mb-8">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mb-5">
             <Heart className="w-8 h-8" />
@@ -87,46 +123,53 @@ export default function Favourites() {
               ))}
             </div>
 
-            {/* Items grid */}
             {activeCategory && (
-              activeCategory.items.length === 0 ? (
-                <div className="glass-card rounded-2xl p-10 border border-white/10 text-foreground/50 text-center">
-                  Nothing added to {activeCategory.label} yet.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {activeCategory.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="glass-card rounded-2xl border border-white/10 overflow-hidden hover:border-rose-500/20 transition-all"
-                    >
-                      {/* Image if available */}
-                      {item.imageUrl && (
-                        <div className="aspect-video w-full overflow-hidden">
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold text-foreground">{item.name}</h3>
-                          {item.rating && (
-                            <span className="flex items-center gap-1 text-xs text-yellow-400 flex-shrink-0">
-                              <Star className="w-3 h-3 fill-yellow-400" /> {item.rating}
-                            </span>
-                          )}
-                        </div>
-                        {item.description && (
-                          <p className="text-foreground/50 text-sm mt-1">{item.description}</p>
-                        )}
-                      </div>
+              <div className="space-y-8">
+
+                {/* Preference note */}
+                {activeCategory.note && (
+                  <div className="glass-card rounded-2xl p-5 border border-white/10 text-foreground/70 text-sm leading-relaxed italic">
+                    💬 {activeCategory.note}
+                  </div>
+                )}
+
+                {/* Top 3 section */}
+                {top3Items.length > 0 && (
+                  <div>
+                    <h2 className="text-sm font-semibold text-yellow-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <Star className="w-4 h-4 fill-yellow-400" /> Top {top3Items.length} Picks
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {top3Items.map((item, i) => (
+                        <ItemCard key={i} item={item} highlight />
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )
+                  </div>
+                )}
+
+                {/* Rest of items */}
+                {restItems.length > 0 && (
+                  <div>
+                    {top3Items.length > 0 && (
+                      <h2 className="text-sm font-semibold text-foreground/50 uppercase tracking-widest mb-4">
+                        More {activeCategory.label}
+                      </h2>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {restItems.map((item, i) => (
+                        <ItemCard key={i} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {activeCategory.items.length === 0 && (
+                  <div className="glass-card rounded-2xl p-10 border border-white/10 text-foreground/50 text-center">
+                    Nothing added to {activeCategory.label} yet.
+                  </div>
+                )}
+              </div>
             )}
           </>
         )}

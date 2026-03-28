@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useAdminAuth, API_BASE } from "@/hooks/use-admin-auth";
-import { Plus, Trash2, Save, ChevronDown, ChevronUp, Heart } from "lucide-react";
+import { Plus, Trash2, Save, Heart, Star } from "lucide-react";
 
 interface FavouriteItem {
   name: string;
   description?: string;
   imageUrl?: string;
   rating?: string;
+  isTop3: boolean;
   order: number;
 }
 
@@ -15,12 +16,15 @@ interface FavouriteCategory {
   category: string;
   label: string;
   emoji: string;
+  note: string;
   isDefault: boolean;
   items: FavouriteItem[];
   order: number;
 }
 
-const emptyItem = (): FavouriteItem => ({ name: "", description: "", imageUrl: "", rating: "", order: 0 });
+const emptyItem = (): FavouriteItem => ({
+  name: "", description: "", imageUrl: "", rating: "", isTop3: false, order: 0
+});
 
 export function AdminFavourites() {
   const { token } = useAdminAuth();
@@ -30,15 +34,15 @@ export function AdminFavourites() {
   const [newItem, setNewItem] = useState<FavouriteItem>(emptyItem());
   const [addingItem, setAddingItem] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
   const [msg, setMsg] = useState("");
+  const [noteEdit, setNoteEdit] = useState<Record<string, string>>({});
 
-  // New category form
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [newCatLabel, setNewCatLabel] = useState("");
   const [newCatEmoji, setNewCatEmoji] = useState("⭐");
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
 
   const fetchCategories = async () => {
@@ -49,12 +53,31 @@ export function AdminFavourites() {
       if (d.success) {
         setCategories(d.data);
         if (!activeCategory && d.data.length > 0) setActiveCategory(d.data[0]._id);
+        // Sync note edit state
+        const notes: Record<string, string> = {};
+        d.data.forEach((c: FavouriteCategory) => { notes[c._id] = c.note || ""; });
+        setNoteEdit(notes);
       }
     } catch { }
     finally { setLoading(false); }
   };
 
   useEffect(() => { fetchCategories(); }, []);
+
+  const saveNote = async (catId: string) => {
+    setSavingNote(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/favourites/${catId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ note: noteEdit[catId] || "" }),
+      });
+      const d = await res.json();
+      if (d.success) { fetchCategories(); flash("Note saved!"); }
+      else flash(d.message || "Failed");
+    } catch { flash("Error"); }
+    setSavingNote(false);
+  };
 
   const createCategory = async () => {
     if (!newCatLabel.trim()) return flash("Label is required");
@@ -83,14 +106,12 @@ export function AdminFavourites() {
       const res = await fetch(`${API_BASE}/api/favourites/${id}`, { method: "DELETE", headers });
       const d = await res.json();
       if (d.success) { fetchCategories(); flash("Deleted"); }
-      else flash(d.message || "Cannot delete");
+      else flash(d.message || "Cannot delete default categories");
     } catch { flash("Error"); }
   };
 
   const addItem = async () => {
     if (!newItem.name.trim()) return flash("Name is required");
-    const cat = categories.find(c => c._id === activeCategory);
-    if (!cat) return;
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/favourites/${activeCategory}/items`, {
@@ -109,6 +130,19 @@ export function AdminFavourites() {
     setSaving(false);
   };
 
+  const toggleTop3 = async (catId: string, itemIndex: number, current: boolean) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/favourites/${catId}/items/${itemIndex}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ isTop3: !current }),
+      });
+      const d = await res.json();
+      if (d.success) fetchCategories();
+      else flash(d.message || "Failed");
+    } catch { flash("Error"); }
+  };
+
   const deleteItem = async (catId: string, itemIndex: number) => {
     if (!confirm("Delete this item?")) return;
     try {
@@ -122,10 +156,10 @@ export function AdminFavourites() {
   };
 
   const activeCat = categories.find(c => c._id === activeCategory);
+  const top3Count = activeCat?.items.filter(i => i.isTop3).length || 0;
 
   return (
     <div className="max-w-4xl">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-foreground">My Favourites</h2>
         <button
@@ -186,9 +220,9 @@ export function AdminFavourites() {
           No categories yet. Create one!
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-4">
           {/* Category tabs */}
-          <div className="flex gap-2 flex-wrap mb-4">
+          <div className="flex gap-2 flex-wrap">
             {categories.map(cat => (
               <div key={cat._id} className="flex items-center gap-1">
                 <button
@@ -213,109 +247,172 @@ export function AdminFavourites() {
             ))}
           </div>
 
-          {/* Active category items */}
           {activeCat && (
-            <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-                <h3 className="font-semibold text-foreground">
-                  {activeCat.emoji} {activeCat.label}
-                  <span className="text-foreground/40 font-normal text-sm ml-2">
-                    {activeCat.items.length} item{activeCat.items.length !== 1 ? "s" : ""}
-                  </span>
-                </h3>
+            <div className="space-y-4">
+
+              {/* Preference note */}
+              <div className="glass-card rounded-2xl border border-white/10 p-5 space-y-3">
+                <label className="text-xs font-medium text-foreground/60 block">
+                  Preference Note <span className="text-foreground/30">(optional — shown to visitors)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={noteEdit[activeCat._id] ?? activeCat.note}
+                  onChange={e => setNoteEdit(n => ({ ...n, [activeCat._id]: e.target.value }))}
+                  placeholder={`e.g. I'm a huge Nolan fan, prefer psychological thrillers over action...`}
+                  className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
                 <button
-                  onClick={() => { setAddingItem(true); setNewItem(emptyItem()); }}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
+                  onClick={() => saveNote(activeCat._id)}
+                  disabled={savingNote}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all disabled:opacity-50"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Add Item
+                  <Save className="w-3.5 h-3.5" />
+                  {savingNote ? "Saving..." : "Save Note"}
                 </button>
               </div>
 
-              {/* Add item form */}
-              {addingItem && (
-                <div className="px-5 py-4 border-b border-white/10 bg-foreground/5 space-y-3">
-                  <input
-                    value={newItem.name}
-                    onChange={e => setNewItem(i => ({ ...i, name: e.target.value }))}
-                    placeholder="Name (e.g. Interstellar) *"
-                    className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                  />
-                  <input
-                    value={newItem.description}
-                    onChange={e => setNewItem(i => ({ ...i, description: e.target.value }))}
-                    placeholder="Why you love it (optional)"
-                    className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      value={newItem.imageUrl}
-                      onChange={e => setNewItem(i => ({ ...i, imageUrl: e.target.value }))}
-                      placeholder="Image URL (optional)"
-                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                    />
-                    <input
-                      value={newItem.rating}
-                      onChange={e => setNewItem(i => ({ ...i, rating: e.target.value }))}
-                      placeholder="Rating (e.g. 9/10)"
-                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
-                    />
+              {/* Items */}
+              <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      {activeCat.emoji} {activeCat.label}
+                      <span className="text-foreground/40 font-normal text-sm ml-2">
+                        {activeCat.items.length} item{activeCat.items.length !== 1 ? "s" : ""}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-foreground/40 mt-0.5">
+                      ⭐ Top 3 selected: {top3Count}/3
+                    </p>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={addItem}
-                      disabled={saving}
-                      className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
-                    >
-                      <Save className="w-3.5 h-3.5 inline mr-1" />
-                      Save Item
-                    </button>
-                    <button
-                      onClick={() => { setAddingItem(false); setNewItem(emptyItem()); }}
-                      className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => { setAddingItem(true); setNewItem(emptyItem()); }}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Item
+                  </button>
                 </div>
-              )}
 
-              {/* Items list */}
-              {activeCat.items.length === 0 ? (
-                <div className="px-5 py-8 text-foreground/40 text-sm text-center">
-                  No items yet. Add your first favourite!
-                </div>
-              ) : (
-                <div className="divide-y divide-white/5">
-                  {activeCat.items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 px-5 py-3">
-                      {item.imageUrl && (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground text-sm">{item.name}</p>
-                          {item.rating && (
-                            <span className="text-xs text-yellow-400">⭐ {item.rating}</span>
-                          )}
-                        </div>
-                        {item.description && (
-                          <p className="text-foreground/50 text-xs mt-0.5 truncate">{item.description}</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => deleteItem(activeCat._id, index)}
-                        className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors flex-shrink-0"
+                {/* Add item form */}
+                {addingItem && (
+                  <div className="px-5 py-4 border-b border-white/10 bg-foreground/5 space-y-3">
+                    <input
+                      value={newItem.name}
+                      onChange={e => setNewItem(i => ({ ...i, name: e.target.value }))}
+                      placeholder="Name (e.g. Interstellar) *"
+                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                    />
+                    <input
+                      value={newItem.description}
+                      onChange={e => setNewItem(i => ({ ...i, description: e.target.value }))}
+                      placeholder="Why you love it (optional)"
+                      className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        value={newItem.imageUrl}
+                        onChange={e => setNewItem(i => ({ ...i, imageUrl: e.target.value }))}
+                        placeholder="Image URL (optional)"
+                        className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                      />
+                      <input
+                        value={newItem.rating}
+                        onChange={e => setNewItem(i => ({ ...i, rating: e.target.value }))}
+                        placeholder="Rating (e.g. 9/10)"
+                        className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
+                      />
+                    </div>
+                    {/* Top 3 toggle */}
+                    <label className="flex items-center gap-3 cursor-pointer w-fit">
+                      <div
+                        onClick={() => setNewItem(i => ({ ...i, isTop3: !i.isTop3 }))}
+                        className={`w-10 h-5 rounded-full transition-all ${
+                          newItem.isTop3 ? "bg-yellow-400/80" : "bg-foreground/20"
+                        } relative`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${
+                          newItem.isTop3 ? "left-5" : "left-0.5"
+                        }`} />
+                      </div>
+                      <span className="text-xs text-foreground/60">
+                        Mark as Top 3 pick {top3Count >= 3 && !newItem.isTop3 ? "(limit reached)" : ""}
+                      </span>
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={addItem}
+                        disabled={saving}
+                        className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
+                      >
+                        <Save className="w-3.5 h-3.5 inline mr-1" /> Save Item
+                      </button>
+                      <button
+                        onClick={() => { setAddingItem(false); setNewItem(emptyItem()); }}
+                        className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
+                      >
+                        Cancel
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                )}
+
+                {/* Items list */}
+                {activeCat.items.length === 0 ? (
+                  <div className="px-5 py-8 text-foreground/40 text-sm text-center">
+                    No items yet. Add your first favourite!
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/5">
+                    {activeCat.items.map((item, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-center gap-4 px-5 py-3 ${
+                          item.isTop3 ? "bg-yellow-400/5" : ""
+                        }`}
+                      >
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {item.isTop3 && <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
+                            <p className="font-medium text-foreground text-sm">{item.name}</p>
+                            {item.rating && (
+                              <span className="text-xs text-yellow-400">⭐ {item.rating}</span>
+                            )}
+                          </div>
+                          {item.description && (
+                            <p className="text-foreground/50 text-xs mt-0.5 truncate">{item.description}</p>
+                          )}
+                        </div>
+                        {/* Top 3 toggle button */}
+                        <button
+                          onClick={() => toggleTop3(activeCat._id, index, item.isTop3)}
+                          title={item.isTop3 ? "Remove from Top 3" : "Add to Top 3"}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${
+                            item.isTop3
+                              ? "bg-yellow-400/20 text-yellow-400"
+                              : "bg-foreground/5 text-foreground/30 hover:text-yellow-400 hover:bg-yellow-400/10"
+                          }`}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${item.isTop3 ? "fill-yellow-400" : ""}`} />
+                        </button>
+                        <button
+                          onClick={() => deleteItem(activeCat._id, index)}
+                          className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors flex-shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

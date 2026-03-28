@@ -5,6 +5,7 @@ export interface IFavouriteItem {
   description?: string;
   imageUrl?: string;
   rating?: string;
+  isTop3: boolean;
   order: number;
 }
 
@@ -12,6 +13,7 @@ export interface IFavouriteCategory extends Document {
   category: string;
   label: string;
   emoji: string;
+  note: string;
   isDefault: boolean;
   items: IFavouriteItem[];
   order: number;
@@ -25,6 +27,7 @@ const FavouriteItemSchema = new Schema<IFavouriteItem>(
     description: { type: String, default: "" },
     imageUrl: { type: String, default: "" },
     rating: { type: String, default: "" },
+    isTop3: { type: Boolean, default: false },
     order: { type: Number, default: 0 },
   },
   { _id: false }
@@ -35,6 +38,7 @@ const FavouriteCategorySchema = new Schema<IFavouriteCategory>(
     category: { type: String, required: true, unique: true, trim: true },
     label: { type: String, required: true, trim: true },
     emoji: { type: String, default: "⭐" },
+    note: { type: String, default: "" },
     isDefault: { type: Boolean, default: false },
     items: { type: [FavouriteItemSchema], default: [] },
     order: { type: Number, default: 0 },
