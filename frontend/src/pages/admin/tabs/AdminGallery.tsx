@@ -32,10 +32,18 @@ export function AdminGallery() {
   const fileRef = useRef<HTMLInputElement>(null);
   const headers = { Authorization: `Bearer ${token}` };
 
-  const fetchGalleries = () => {
+  const fetchGalleries = (syncActiveId?: string) => {
     fetch(`${API_BASE}/api/gallery`, { headers })
       .then((r) => r.json())
-      .then((d) => setGalleries(d.data || []))
+      .then((d) => {
+        const data: Gallery[] = d.data || [];
+        setGalleries(data);
+        // Keep activeGallery in sync after mutations
+        if (syncActiveId) {
+          const updated = data.find((g) => g._id === syncActiveId);
+          if (updated) setActiveGallery(updated);
+        }
+      })
       .finally(() => setLoading(false));
   };
 
@@ -58,50 +66,46 @@ export function AdminGallery() {
   };
 
   const uploadImages = async () => {
-    console.log("uploadImages called, activeGallery:", activeGallery, "uploadFiles:", uploadFiles.length);
     if (!activeGallery || uploadFiles.length === 0) return;
     setUploading(true);
-    console.log("Starting upload for gallery", activeGallery._id, "with", uploadFiles.length, "files");
+    const galleryId = activeGallery._id;
 
     try {
       const fd = new FormData();
       uploadFiles.forEach((f) => fd.append("images", f));
-      console.log("FormData created");
 
-      // Use timeout to avoid hanging forever
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      console.log("Sending POST to", `${API_BASE}/api/gallery/${activeGallery._id}/images`);
-      const res = await fetch(`${API_BASE}/api/gallery/${activeGallery._id}/images`, {
+      const res = await fetch(`${API_BASE}/api/gallery/${galleryId}/images`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` }, // Note: NO Content-Type for FormData
+        headers: { Authorization: `Bearer ${token}` },
         body: fd,
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
-      console.log("Response received:", res.status);
-
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("Upload failed:", data.message || `HTTP ${res.status}`);
-        alert(`Upload failed: ${data.message || "Check console for details"}`);
-        setUploading(false);
+        alert(`Upload failed: ${data.message || `HTTP ${res.status}`}`);
         return;
       }
 
-      if (data.gallery) setActiveGallery(data.gallery);
+      // Prefer the returned gallery, fallback to re-fetching
+      if (data.gallery) {
+        setActiveGallery(data.gallery);
+        fetchGalleries();
+      } else {
+        fetchGalleries(galleryId);
+      }
       setUploadFiles([]);
-      fetchGalleries();
-      alert("✅ Upload successful!");
+      if (fileRef.current) fileRef.current.value = "";
     } catch (error: any) {
       if (error.name === "AbortError") {
-        alert("❌ Upload timeout (30s). Check file size and internet.");
+        alert("Upload timed out. Check file size and internet connection.");
       } else {
-        console.error("Upload error:", error);
-        alert(`❌ Upload error: ${error.message}`);
+        alert(`Upload error: ${error.message}`);
       }
     } finally {
       setUploading(false);
@@ -113,8 +117,12 @@ export function AdminGallery() {
     const encodedKey = encodeURIComponent(key);
     const res = await fetch(`${API_BASE}/api/gallery/${activeGallery._id}/images/${encodedKey}`, { method: "DELETE", headers });
     const data = await res.json();
-    if (data.gallery) setActiveGallery(data.gallery);
-    fetchGalleries();
+    if (data.gallery) {
+      setActiveGallery(data.gallery);
+      fetchGalleries();
+    } else {
+      fetchGalleries(activeGallery._id);
+    }
   };
 
   // Album detail view
