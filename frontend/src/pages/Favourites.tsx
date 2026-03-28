@@ -38,7 +38,6 @@ function ItemCard({ item, highlight }: { item: FavouriteItem; highlight?: boolea
       {item.imageUrl && (
         <div className="aspect-video w-full overflow-hidden relative">
           <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-          {/* Play icon overlay for songs with a link */}
           {isClickable && (
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -112,7 +111,6 @@ export default function Favourites() {
     label.toLowerCase().includes("music") || label.toLowerCase().includes("artist");
   const isMusic = isMusicCategory(activeCategory?.label || "");
 
-  // For music: filter by sub-tab; for others: use all items
   const visibleItems = isMusic
     ? activeCategory?.items.filter(i => i.musicType === musicSubTab) || []
     : activeCategory?.items || [];
@@ -148,7 +146,7 @@ export default function Favourites() {
           </div>
         ) : (
           <>
-            {/* ── Category tabs ── */}
+            {/* Category tabs */}
             <div className="flex gap-2 flex-wrap mb-8">
               {categories.map(cat => (
                 <button key={cat.category} onClick={() => setActiveTab(cat.category)}
@@ -172,7 +170,7 @@ export default function Favourites() {
                   </div>
                 )}
 
-                {/* ── Music sub-tabs ── */}
+                {/* Music sub-tabs */}
                 {isMusic && (
                   <div className="flex gap-2">
                     <button
@@ -208,11 +206,15 @@ export default function Favourites() {
                   </div>
                 )}
 
-                {/* ── Top 3 ── */}
+                {/* Top Picks — separate per music type */}
                 {top3Items.length > 0 && (
                   <div>
                     <h2 className="text-sm font-semibold text-yellow-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <Star className="w-4 h-4 fill-yellow-400" /> Top {top3Items.length} Picks
+                      <Star className="w-4 h-4 fill-yellow-400" />
+                      {isMusic
+                        ? `Top ${top3Items.length} ${musicSubTab === "artist" ? "Artists" : "Songs"}`
+                        : `Top ${top3Items.length} Picks`
+                      }
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {top3Items.map((item, i) => <ItemCard key={i} item={item} highlight />)}
@@ -220,7 +222,7 @@ export default function Favourites() {
                   </div>
                 )}
 
-                {/* ── Rest ── */}
+                {/* Rest */}
                 {restItems.length > 0 && (
                   <div>
                     {top3Items.length > 0 && (
@@ -234,7 +236,7 @@ export default function Favourites() {
                   </div>
                 )}
 
-                {/* ── Empty state ── */}
+                {/* Empty state */}
                 {visibleItems.length === 0 && (
                   <div className="glass-card rounded-2xl p-10 border border-white/10 text-foreground/50 text-center">
                     {isMusic

@@ -30,9 +30,7 @@ const emptyItem = () => ({
   name: "", description: "", imageUrl: "", rating: "",
   isTop3: false, order: 0, sport: "", itemType: "",
   musicType: "" as "" | "artist" | "song",
-  artistName: "",
-  songUrl: "",
-  language: "",
+  artistName: "", songUrl: "", language: "",
 });
 
 const getPlaceholders = (label: string) => {
@@ -78,7 +76,6 @@ const MUSIC_TYPES = [
 
 type ItemFormState = ReturnType<typeof emptyItem>;
 
-// ── ImageUploadField defined OUTSIDE to avoid remount on re-render ─────────────
 const ImageUploadField = ({
   value, fileRef, onChange, onPick, uploadingImage,
 }: {
@@ -94,27 +91,19 @@ const ImageUploadField = ({
       <div className="flex items-center gap-3">
         <img src={value} className="w-14 h-14 rounded-xl object-cover border border-white/10" />
         <div className="flex flex-col gap-1">
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={uploadingImage}
-            className="px-3 py-1.5 rounded-lg bg-foreground/5 border border-white/10 text-foreground/60 text-xs hover:bg-foreground/10 transition-all"
-          >
+          <button onClick={() => fileRef.current?.click()} disabled={uploadingImage}
+            className="px-3 py-1.5 rounded-lg bg-foreground/5 border border-white/10 text-foreground/60 text-xs hover:bg-foreground/10 transition-all">
             {uploadingImage ? "Uploading..." : "Change Image"}
           </button>
-          <button
-            onClick={() => onChange("")}
-            className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 transition-all"
-          >
+          <button onClick={() => onChange("")}
+            className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs hover:bg-red-500/20 transition-all">
             Remove
           </button>
         </div>
       </div>
     ) : (
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={uploadingImage}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground/60 text-sm hover:bg-foreground/10 transition-all w-full justify-center"
-      >
+      <button onClick={() => fileRef.current?.click()} disabled={uploadingImage}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground/60 text-sm hover:bg-foreground/10 transition-all w-full justify-center">
         <Upload className="w-4 h-4" />
         {uploadingImage ? "Uploading..." : "Upload Image (optional)"}
       </button>
@@ -303,8 +292,7 @@ export function AdminFavourites() {
       rating: item.rating || "",
       isTop3: item.isTop3,
       order: item.order,
-      sport: "",
-      itemType: "",
+      sport: "", itemType: "",
       musicType: item.musicType || "",
       artistName: item.artistName || "",
       songUrl: item.songUrl || "",
@@ -347,6 +335,14 @@ export function AdminFavourites() {
   const toggleTop3 = async (catId: string, itemIndex: number, current: boolean) => {
     const item = activeCat?.items[itemIndex];
     if (!item) return;
+    // Enforce per-type limit for music
+    if (!current && isMusic) {
+      const typeCount = activeCat?.items.filter(
+        i => i.isTop3 && i.musicType === item.musicType
+      ).length || 0;
+      if (typeCount >= 3) return flash(`Top 3 ${item.musicType === "artist" ? "artists" : "songs"} limit reached`);
+    }
+    if (!current && !isMusic && top3Count >= 3) return flash("Top 3 limit reached");
     try {
       const res = await fetch(`${API_BASE}/api/favourites/${catId}/items/${itemIndex}`, {
         method: "PUT", headers,
@@ -377,11 +373,12 @@ export function AdminFavourites() {
 
   const activeCat = categories.find(c => c._id === activeCategory);
   const top3Count = activeCat?.items.filter(i => i.isTop3).length || 0;
+  const top3ArtistCount = activeCat?.items.filter(i => i.isTop3 && i.musicType === "artist").length || 0;
+  const top3SongCount = activeCat?.items.filter(i => i.isTop3 && i.musicType === "song").length || 0;
   const ph = getPlaceholders(activeCat?.label || "");
   const isSports = isSportsCategory(activeCat?.label || "");
   const isMusic = isMusicCategory(activeCat?.label || "");
 
-  // ── Music type badge helper ─────────────────────────────────────────────────
   const MusicBadge = ({ type }: { type?: string }) => {
     if (!type) return null;
     return (
@@ -399,10 +396,8 @@ export function AdminFavourites() {
     <div className="max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-foreground">My Favourites</h2>
-        <button
-          onClick={() => setCreatingCategory(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
-        >
+        <button onClick={() => setCreatingCategory(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all">
           <Plus className="w-4 h-4" /> New Category
         </button>
       </div>
@@ -417,8 +412,7 @@ export function AdminFavourites() {
         <div className="glass-card rounded-2xl p-5 border border-white/10 mb-6 space-y-3">
           <h3 className="text-sm font-semibold text-foreground">New Category</h3>
           <div className="flex gap-3">
-            <input value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)}
-              placeholder="Emoji"
+            <input value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)} placeholder="Emoji"
               className="w-16 px-3 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none text-center" />
             <input value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)}
               placeholder="Category name (e.g. Video Games)"
@@ -459,8 +453,7 @@ export function AdminFavourites() {
                     activeCategory === cat._id
                       ? "bg-primary/20 text-primary border-primary/20"
                       : "text-foreground/50 border-white/10 hover:text-foreground"
-                  }`}
-                >
+                  }`}>
                   {cat.emoji} {cat.label}
                 </button>
                 {!cat.isDefault && (
@@ -507,28 +500,28 @@ export function AdminFavourites() {
                         {activeCat.items.length} item{activeCat.items.length !== 1 ? "s" : ""}
                       </span>
                     </h3>
-                    {isMusic && (
+                    {isMusic ? (
                       <p className="text-xs text-foreground/40 mt-0.5">
                         🎤 {activeCat.items.filter(i => i.musicType === "artist").length} artists ·
-                        🎵 {activeCat.items.filter(i => i.musicType === "song").length} songs
+                        🎵 {activeCat.items.filter(i => i.musicType === "song").length} songs ·
+                        ⭐ Top artists: {top3ArtistCount}/3 · Top songs: {top3SongCount}/3
                       </p>
+                    ) : (
+                      <p className="text-xs text-foreground/40 mt-0.5">⭐ Top 3 selected: {top3Count}/3</p>
                     )}
-                    <p className="text-xs text-foreground/40 mt-0.5">⭐ Top 3 selected: {top3Count}/3</p>
                   </div>
                   <button
                     onClick={() => { setAddingItem(true); setEditingIndex(null); setNewItem(emptyItem()); }}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
-                  >
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all">
                     <Plus className="w-3.5 h-3.5" /> Add Item
                   </button>
                 </div>
 
-                {/* ── Add item form ── */}
+                {/* Add item form */}
                 {addingItem && (
                   <div className="px-5 py-4 border-b border-white/10 bg-foreground/5 space-y-3">
                     <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wide">New Item</p>
 
-                    {/* Music type selector */}
                     {isMusic && (
                       <div>
                         <label className="text-xs text-foreground/50 mb-1 block">Type *</label>
@@ -542,8 +535,7 @@ export function AdminFavourites() {
                                     ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
                                     : "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
                                   : "text-foreground/50 border-white/10 hover:bg-foreground/5"
-                              }`}
-                            >
+                              }`}>
                               {t.label}
                             </button>
                           ))}
@@ -551,7 +543,6 @@ export function AdminFavourites() {
                       </div>
                     )}
 
-                    {/* Sports selectors */}
                     {isSports && (
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -578,27 +569,20 @@ export function AdminFavourites() {
                       placeholder={isMusic && newItem.musicType === "song" ? "Song name *" : ph.name}
                       className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
 
-                    {/* Artist name — only for songs */}
-                    {isMusic && newItem.musicType === "song" && (
+                    {isMusic && newItem.musicType === "song" && (<>
                       <input value={newItem.artistName}
                         onChange={e => setNewItem(i => ({ ...i, artistName: e.target.value }))}
                         placeholder="Artist name (e.g. Arijit Singh)"
                         className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
-                    )}
-
-                    {isMusic && newItem.musicType === "song" && (
                       <input value={newItem.songUrl}
                         onChange={e => setNewItem(i => ({ ...i, songUrl: e.target.value }))}
                         placeholder="Spotify or YouTube link (optional)"
                         className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
-                    )}
-
-                    {isMusic && newItem.musicType === "song" && (
                       <input value={newItem.language}
                         onChange={e => setNewItem(i => ({ ...i, language: e.target.value }))}
                         placeholder="Language (e.g. Hindi, English, Bengali)"
                         className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
-                    )}
+                    </>)}
 
                     <input value={newItem.description}
                       onChange={e => setNewItem(i => ({ ...i, description: e.target.value }))}
@@ -623,7 +607,10 @@ export function AdminFavourites() {
                         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newItem.isTop3 ? "left-5" : "left-0.5"}`} />
                       </div>
                       <span className="text-xs text-foreground/60">
-                        Mark as Top 3 pick {top3Count >= 3 && !newItem.isTop3 ? "(limit reached)" : ""}
+                        Mark as Top 3 pick {isMusic
+                          ? (newItem.musicType === "artist" && top3ArtistCount >= 3) || (newItem.musicType === "song" && top3SongCount >= 3)
+                            ? "(limit reached)" : ""
+                          : top3Count >= 3 && !newItem.isTop3 ? "(limit reached)" : ""}
                       </span>
                     </label>
 
@@ -640,7 +627,7 @@ export function AdminFavourites() {
                   </div>
                 )}
 
-                {/* ── Items list ── */}
+                {/* Items list */}
                 {activeCat.items.length === 0 ? (
                   <div className="px-5 py-8 text-foreground/40 text-sm text-center">
                     No items yet. Add your first favourite!
@@ -694,7 +681,6 @@ export function AdminFavourites() {
                               </button>
                             </div>
 
-                            {/* Music type selector in edit */}
                             {isMusic && (
                               <div>
                                 <label className="text-xs text-foreground/50 mb-1 block">Type *</label>
@@ -708,8 +694,7 @@ export function AdminFavourites() {
                                             ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
                                             : "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
                                           : "text-foreground/50 border-white/10 hover:bg-foreground/5"
-                                      }`}
-                                    >
+                                      }`}>
                                       {t.label}
                                     </button>
                                   ))}
@@ -722,26 +707,20 @@ export function AdminFavourites() {
                               placeholder={isMusic && editItem.musicType === "song" ? "Song name *" : ph.name}
                               className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
 
-                            {isMusic && editItem.musicType === "song" && (
+                            {isMusic && editItem.musicType === "song" && (<>
                               <input value={editItem.artistName}
                                 onChange={e => setEditItem(i => ({ ...i, artistName: e.target.value }))}
                                 placeholder="Artist name (e.g. Arijit Singh)"
                                 className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
-                            )}
-
-                            {isMusic && editItem.musicType === "song" && (
                               <input value={editItem.songUrl}
                                 onChange={e => setEditItem(i => ({ ...i, songUrl: e.target.value }))}
                                 placeholder="Spotify or YouTube link (optional)"
                                 className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
-                            )}
-
-                            {isMusic && editItem.musicType === "song" && (
                               <input value={editItem.language}
                                 onChange={e => setEditItem(i => ({ ...i, language: e.target.value }))}
                                 placeholder="Language (e.g. Hindi, English, Bengali)"
                                 className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
-                            )}
+                            </>)}
 
                             <input value={editItem.description}
                               onChange={e => setEditItem(i => ({ ...i, description: e.target.value }))}
