@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useAdminAuth, API_BASE } from "@/hooks/use-admin-auth";
-import { Plus, Trash2, Upload, X, Users } from "lucide-react";
+import { Plus, Trash2, Upload, X, Users, Pencil, Save, Check } from "lucide-react";
 
 type SubCategory = "family" | "friends";
 
@@ -35,8 +35,19 @@ export function AdminFamilyFriends() {
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<{ file: File; caption: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [msg, setMsg] = useState("");
+
+  // Album editing
+  const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
+  const [editAlbumLabel, setEditAlbumLabel] = useState("");
+  const [editAlbumDesc, setEditAlbumDesc] = useState("");
+
+  // Caption editing
+  const [editingCaption, setEditingCaption] = useState<{ albumId: string; key: string } | null>(null);
+  const [editCaptionValue, setEditCaptionValue] = useState("");
 
   const headers = { Authorization: `Bearer ${token}` };
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
 
   const fetchAlbums = async (sub: SubCategory) => {
     setLoading(true);
@@ -51,9 +62,7 @@ export function AdminFamilyFriends() {
     }
   };
 
-  useEffect(() => {
-    fetchAlbums(activeTab);
-  }, [activeTab]);
+  useEffect(() => { fetchAlbums(activeTab); }, [activeTab]);
 
   const createAlbum = async () => {
     if (!newAlbumLabel.trim()) return;
@@ -69,12 +78,50 @@ export function AdminFamilyFriends() {
       });
       const data = await res.json();
       if (data.success) {
-        setNewAlbumLabel("");
-        setNewAlbumDesc("");
-        setCreating(false);
-        fetchAlbums(activeTab);
+        setNewAlbumLabel(""); setNewAlbumDesc(""); setCreating(false);
+        fetchAlbums(activeTab); flash("Album created!");
       }
-    } catch {}
+    } catch { flash("Error creating album"); }
+  };
+
+  const saveAlbumEdit = async (albumId: string) => {
+    if (!editAlbumLabel.trim()) return flash("Album name is required");
+    try {
+      const res = await fetch(`${API_BASE}/api/gallery/${albumId}`, {
+        method: "PUT",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ label: editAlbumLabel.trim(), description: editAlbumDesc.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditingAlbumId(null);
+        fetchAlbums(activeTab);
+        flash("Album updated!");
+      } else flash(data.message || "Failed to update");
+    } catch { flash("Error updating album"); }
+  };
+
+  const saveCaption = async (albumId: string, imageKey: string) => {
+    const album = albums.find(a => a._id === albumId);
+    if (!album) return;
+
+    const updatedImages = album.images.map(img =>
+      img.key === imageKey ? { ...img, caption: editCaptionValue } : img
+    );
+
+    try {
+      const res = await fetch(`${API_BASE}/api/gallery/${albumId}`, {
+        method: "PUT",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ images: updatedImages }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditingCaption(null);
+        fetchAlbums(activeTab);
+        flash("Caption updated!");
+      } else flash(data.message || "Failed");
+    } catch { flash("Error updating caption"); }
   };
 
   const deleteAlbum = async (id: string) => {
@@ -82,22 +129,21 @@ export function AdminFamilyFriends() {
     try {
       await fetch(`${API_BASE}/api/gallery/${id}`, { method: "DELETE", headers });
       fetchAlbums(activeTab);
-    } catch {}
+      flash("Album deleted");
+    } catch { flash("Error deleting album"); }
   };
 
   const deleteImage = async (albumId: string, key: string) => {
     try {
       await fetch(`${API_BASE}/api/gallery/${albumId}/images/${encodeURIComponent(key)}`, {
-        method: "DELETE",
-        headers,
+        method: "DELETE", headers,
       });
       fetchAlbums(activeTab);
     } catch {}
   };
 
   const startUpload = (albumId: string) => {
-    setUploadingFor(albumId);
-    setPendingFiles([]);
+    setUploadingFor(albumId); setPendingFiles([]);
   };
 
   const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,20 +162,16 @@ export function AdminFamilyFriends() {
     const formData = new FormData();
     pendingFiles.forEach(({ file }) => formData.append("images", file));
     formData.append("captions", JSON.stringify(pendingFiles.map((f) => f.caption)));
-
     try {
       const res = await fetch(`${API_BASE}/api/gallery/${uploadingFor}/images`, {
-        method: "POST",
-        headers,
-        body: formData,
+        method: "POST", headers, body: formData,
       });
       const data = await res.json();
       if (data.success) {
-        setUploadingFor(null);
-        setPendingFiles([]);
-        fetchAlbums(activeTab);
+        setUploadingFor(null); setPendingFiles([]);
+        fetchAlbums(activeTab); flash("Photos uploaded!");
       }
-    } catch {}
+    } catch { flash("Error uploading photos"); }
   };
 
   return (
@@ -145,6 +187,12 @@ export function AdminFamilyFriends() {
         </button>
       </div>
 
+      {msg && (
+        <div className="mb-4 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm">
+          {msg}
+        </div>
+      )}
+
       {/* Sub-category tabs */}
       <div className="flex gap-2 mb-6">
         {SUB_CATEGORIES.map((sub) => (
@@ -152,9 +200,8 @@ export function AdminFamilyFriends() {
             key={sub.value}
             onClick={() => {
               setActiveTab(sub.value);
-              setUploadingFor(null);
-              setPendingFiles([]);
-              setCreating(false);
+              setUploadingFor(null); setPendingFiles([]);
+              setCreating(false); setEditingAlbumId(null);
             }}
             className={`px-5 py-2 rounded-xl text-sm font-medium transition-all ${
               activeTab === sub.value
@@ -186,16 +233,12 @@ export function AdminFamilyFriends() {
             className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none"
           />
           <div className="flex gap-2">
-            <button
-              onClick={createAlbum}
-              className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
-            >
+            <button onClick={createAlbum}
+              className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all">
               Create Album
             </button>
-            <button
-              onClick={() => { setCreating(false); setNewAlbumLabel(""); setNewAlbumDesc(""); }}
-              className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
-            >
+            <button onClick={() => { setCreating(false); setNewAlbumLabel(""); setNewAlbumDesc(""); }}
+              className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all">
               Cancel
             </button>
           </div>
@@ -217,35 +260,78 @@ export function AdminFamilyFriends() {
 
               {/* Album header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-                <div>
-                  <h3 className="font-semibold text-foreground">{album.label}</h3>
-                  {album.description && (
-                    <p className="text-xs text-foreground/50 mt-0.5">{album.description}</p>
+                <div className="flex-1 min-w-0">
+                  {editingAlbumId === album._id ? (
+                    <div className="space-y-2 mr-4">
+                      <input
+                        value={editAlbumLabel}
+                        onChange={e => setEditAlbumLabel(e.target.value)}
+                        placeholder="Album name"
+                        className="w-full px-3 py-1.5 rounded-lg bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none focus:border-primary/50"
+                      />
+                      <input
+                        value={editAlbumDesc}
+                        onChange={e => setEditAlbumDesc(e.target.value)}
+                        placeholder="Description (optional)"
+                        className="w-full px-3 py-1.5 rounded-lg bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none focus:border-primary/50"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => saveAlbumEdit(album._id)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-xs font-medium hover:bg-primary/30 transition-all">
+                          <Save className="w-3 h-3" /> Save
+                        </button>
+                        <button onClick={() => setEditingAlbumId(null)}
+                          className="px-3 py-1.5 rounded-lg text-foreground/50 border border-white/10 text-xs hover:bg-foreground/5 transition-all">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{album.label}</h3>
+                        {album.description && (
+                          <p className="text-xs text-foreground/50 mt-0.5">{album.description}</p>
+                        )}
+                        <p className="text-xs text-foreground/40 mt-1">
+                          {album.images.length} photo{album.images.length !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setEditingAlbumId(album._id);
+                          setEditAlbumLabel(album.label);
+                          setEditAlbumDesc(album.description || "");
+                        }}
+                        className="w-7 h-7 rounded-lg bg-foreground/5 text-foreground/40 hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-colors flex-shrink-0"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
-                  <p className="text-xs text-foreground/40 mt-1">
-                    {album.images.length} photo{album.images.length !== 1 ? "s" : ""}
-                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => startUpload(album._id)}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
-                  >
-                    <Upload className="w-3.5 h-3.5" /> Upload Photos
-                  </button>
-                  <button
-                    onClick={() => deleteAlbum(album._id)}
-                    className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+
+                {editingAlbumId !== album._id && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => startUpload(album._id)}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
+                    >
+                      <Upload className="w-3.5 h-3.5" /> Upload Photos
+                    </button>
+                    <button
+                      onClick={() => deleteAlbum(album._id)}
+                      className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Upload panel */}
               {uploadingFor === album._id && (
                 <div className="px-5 py-4 border-b border-white/10 bg-foreground/5 space-y-3">
-                  {/* Hidden file input — triggered programmatically */}
                   <input
                     ref={fileRef}
                     type="file"
@@ -255,8 +341,6 @@ export function AdminFamilyFriends() {
                     className="hidden"
                     key={uploadingFor}
                   />
-
-                  {/* Choose photos button (shown when no files picked yet) */}
                   {pendingFiles.length === 0 && (
                     <button
                       onClick={() => fileRef.current?.click()}
@@ -265,8 +349,6 @@ export function AdminFamilyFriends() {
                       <Upload className="w-4 h-4" /> Choose Photos
                     </button>
                   )}
-
-                  {/* Preview + caption inputs */}
                   {pendingFiles.length > 0 && (
                     <div className="space-y-2">
                       {pendingFiles.map((f, i) => (
@@ -285,29 +367,21 @@ export function AdminFamilyFriends() {
                       ))}
                     </div>
                   )}
-
-                  {/* Action buttons */}
                   <div className="flex gap-2 flex-wrap">
                     {pendingFiles.length > 0 && (
                       <>
-                        <button
-                          onClick={uploadImages}
-                          className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all"
-                        >
+                        <button onClick={uploadImages}
+                          className="px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/30 transition-all">
                           Upload {pendingFiles.length} photo{pendingFiles.length > 1 ? "s" : ""}
                         </button>
-                        <button
-                          onClick={() => fileRef.current?.click()}
-                          className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
-                        >
+                        <button onClick={() => fileRef.current?.click()}
+                          className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all">
                           Change Files
                         </button>
                       </>
                     )}
-                    <button
-                      onClick={() => { setUploadingFor(null); setPendingFiles([]); }}
-                      className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all"
-                    >
+                    <button onClick={() => { setUploadingFor(null); setPendingFiles([]); }}
+                      className="px-4 py-2 rounded-xl text-foreground/50 border border-white/10 text-sm hover:bg-foreground/5 transition-all">
                       Cancel
                     </button>
                   </div>
@@ -318,16 +392,48 @@ export function AdminFamilyFriends() {
               {album.images.length > 0 && (
                 <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {album.images.map((img) => (
-                    <div
-                      key={img.key}
-                      className="relative group rounded-xl overflow-hidden aspect-square border border-white/10"
-                    >
-                      <img src={img.url} alt={img.caption} className="w-full h-full object-cover" />
-                      {img.caption && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 text-xs text-white/80 truncate">
-                          {img.caption}
+                    <div key={img.key} className="relative group rounded-xl overflow-hidden border border-white/10">
+                      <img src={img.url} alt={img.caption} className="w-full aspect-square object-cover" />
+
+                      {/* Caption display / edit */}
+                      {editingCaption?.albumId === album._id && editingCaption?.key === img.key ? (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/90 p-1.5 flex gap-1">
+                          <input
+                            value={editCaptionValue}
+                            onChange={e => setEditCaptionValue(e.target.value)}
+                            className="flex-1 px-2 py-1 rounded text-xs bg-white/10 text-white border border-white/20 focus:outline-none"
+                            placeholder="Caption..."
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => saveCaption(album._id, img.key)}
+                            className="w-6 h-6 rounded bg-primary/80 text-white flex items-center justify-center flex-shrink-0"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => setEditingCaption(null)}
+                            className="w-6 h-6 rounded bg-white/10 text-white flex items-center justify-center flex-shrink-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex items-center justify-between gap-1 cursor-pointer"
+                          onClick={() => {
+                            setEditingCaption({ albumId: album._id, key: img.key });
+                            setEditCaptionValue(img.caption || "");
+                          }}
+                        >
+                          <span className="text-xs text-white/80 truncate flex-1">
+                            {img.caption || <span className="text-white/30 italic">Add caption...</span>}
+                          </span>
+                          <Pencil className="w-3 h-3 text-white/40 flex-shrink-0" />
                         </div>
                       )}
+
+                      {/* Delete button */}
                       <button
                         onClick={() => deleteImage(album._id, img.key)}
                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -338,7 +444,6 @@ export function AdminFamilyFriends() {
                   ))}
                 </div>
               )}
-
             </div>
           ))}
         </div>
