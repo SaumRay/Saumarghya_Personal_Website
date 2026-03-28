@@ -12,6 +12,8 @@ interface FavouriteItem {
   order: number;
   musicType?: "artist" | "song";
   artistName?: string;
+  songUrl?: string;
+  language?: string;
 }
 
 interface FavouriteCategory {
@@ -27,13 +29,23 @@ interface FavouriteCategory {
 type MusicSubTab = "artist" | "song";
 
 function ItemCard({ item, highlight }: { item: FavouriteItem; highlight?: boolean }) {
-  return (
-    <div className={`glass-card rounded-2xl border overflow-hidden hover:border-rose-500/20 transition-all ${
+  const isClickable = item.musicType === "song" && !!item.songUrl;
+
+  const cardContent = (
+    <div className={`glass-card rounded-2xl border overflow-hidden transition-all ${
       highlight ? "border-yellow-400/30 bg-yellow-400/5" : "border-white/10"
-    }`}>
+    } ${isClickable ? "hover:border-cyan-500/40 hover:-translate-y-1 cursor-pointer group" : "hover:border-rose-500/20"}`}>
       {item.imageUrl && (
-        <div className="aspect-video w-full overflow-hidden">
+        <div className="aspect-video w-full overflow-hidden relative">
           <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+          {/* Play icon overlay for songs with a link */}
+          {isClickable && (
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-xl">▶</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div className="p-4">
@@ -48,16 +60,31 @@ function ItemCard({ item, highlight }: { item: FavouriteItem; highlight?: boolea
             </span>
           )}
         </div>
-        {/* Artist name for songs */}
         {item.musicType === "song" && item.artistName && (
-          <p className="text-foreground/40 text-xs mt-0.5 italic">by {item.artistName}</p>
+          <p className="text-foreground/40 text-xs mt-0.5 italic">
+            by {item.artistName}{item.language ? ` · ${item.language}` : ""}
+          </p>
         )}
         {item.description && (
           <p className="text-foreground/50 text-sm mt-1">{item.description}</p>
         )}
+        {isClickable && (
+          <p className="text-cyan-400/60 text-xs mt-2 flex items-center gap-1">
+            🎵 <span>Listen on {item.songUrl?.includes("spotify") ? "Spotify" : "YouTube"}</span>
+          </p>
+        )}
       </div>
     </div>
   );
+
+  if (isClickable) {
+    return (
+      <a href={item.songUrl} target="_blank" rel="noreferrer" className="block">
+        {cardContent}
+      </a>
+    );
+  }
+  return cardContent;
 }
 
 export default function Favourites() {

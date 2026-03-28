@@ -9,6 +9,8 @@ export interface IFavouriteItem {
   order: number;
   musicType?: "artist" | "song"; // only used for music-artists category
   artistName?: string;           // only used when musicType === "song"
+  songUrl?: string;              // Spotify / YouTube link, only for songs
+  language?: string;             // e.g. Hindi, English, Bengali
 }
 
 export interface IFavouriteCategory extends Document {
@@ -33,6 +35,8 @@ const FavouriteItemSchema = new Schema<IFavouriteItem>(
     order:       { type: Number, default: 0 },
     musicType:   { type: String, enum: ["artist", "song"], default: undefined },
     artistName:  { type: String, default: "" },
+    songUrl:     { type: String, default: "" },
+    language:    { type: String, default: "" },
   },
   { _id: false }
 );

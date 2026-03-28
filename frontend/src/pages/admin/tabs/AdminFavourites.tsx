@@ -11,6 +11,8 @@ interface FavouriteItem {
   order: number;
   musicType?: "artist" | "song";
   artistName?: string;
+  songUrl?: string;
+  language?: string;
 }
 
 interface FavouriteCategory {
@@ -29,6 +31,8 @@ const emptyItem = () => ({
   isTop3: false, order: 0, sport: "", itemType: "",
   musicType: "" as "" | "artist" | "song",
   artistName: "",
+  songUrl: "",
+  language: "",
 });
 
 const getPlaceholders = (label: string) => {
@@ -272,7 +276,11 @@ export function AdminFavourites() {
       };
       if (isMusic) {
         body.musicType = newItem.musicType;
-        if (newItem.musicType === "song") body.artistName = newItem.artistName || "";
+        if (newItem.musicType === "song") {
+          body.artistName = newItem.artistName || "";
+          body.songUrl = newItem.songUrl || "";
+          body.language = newItem.language || "";
+        }
       }
       const res = await fetch(`${API_BASE}/api/favourites/${activeCategory}/items`, {
         method: "POST", headers, body: JSON.stringify(body),
@@ -299,6 +307,8 @@ export function AdminFavourites() {
       itemType: "",
       musicType: item.musicType || "",
       artistName: item.artistName || "",
+      songUrl: item.songUrl || "",
+      language: item.language || "",
     });
   };
 
@@ -320,6 +330,8 @@ export function AdminFavourites() {
       if (isMusic) {
         body.musicType = editItem.musicType;
         body.artistName = editItem.musicType === "song" ? editItem.artistName || "" : "";
+        body.songUrl = editItem.musicType === "song" ? editItem.songUrl || "" : "";
+        body.language = editItem.musicType === "song" ? editItem.language || "" : "";
       }
       const res = await fetch(`${API_BASE}/api/favourites/${activeCategory}/items/${editingIndex}`, {
         method: "PUT", headers, body: JSON.stringify(body),
@@ -343,6 +355,7 @@ export function AdminFavourites() {
           imageUrl: item.imageUrl, rating: item.rating,
           order: item.order, isTop3: !current,
           musicType: item.musicType, artistName: item.artistName,
+          songUrl: item.songUrl, language: item.language,
         }),
       });
       const d = await res.json();
@@ -573,6 +586,20 @@ export function AdminFavourites() {
                         className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
                     )}
 
+                    {isMusic && newItem.musicType === "song" && (
+                      <input value={newItem.songUrl}
+                        onChange={e => setNewItem(i => ({ ...i, songUrl: e.target.value }))}
+                        placeholder="Spotify or YouTube link (optional)"
+                        className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                    )}
+
+                    {isMusic && newItem.musicType === "song" && (
+                      <input value={newItem.language}
+                        onChange={e => setNewItem(i => ({ ...i, language: e.target.value }))}
+                        placeholder="Language (e.g. Hindi, English, Bengali)"
+                        className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                    )}
+
                     <input value={newItem.description}
                       onChange={e => setNewItem(i => ({ ...i, description: e.target.value }))}
                       placeholder={ph.desc}
@@ -636,7 +663,7 @@ export function AdminFavourites() {
                                 {item.rating && <span className="text-xs text-yellow-400">⭐ {item.rating}</span>}
                               </div>
                               {item.musicType === "song" && item.artistName && (
-                                <p className="text-foreground/40 text-xs mt-0.5">by {item.artistName}</p>
+                                <p className="text-foreground/40 text-xs mt-0.5">by {item.artistName}{item.language ? ` · ${item.language}` : ""}</p>
                               )}
                               {item.description && (
                                 <p className="text-foreground/50 text-xs mt-0.5">{item.description}</p>
@@ -699,6 +726,20 @@ export function AdminFavourites() {
                               <input value={editItem.artistName}
                                 onChange={e => setEditItem(i => ({ ...i, artistName: e.target.value }))}
                                 placeholder="Artist name (e.g. Arijit Singh)"
+                                className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                            )}
+
+                            {isMusic && editItem.musicType === "song" && (
+                              <input value={editItem.songUrl}
+                                onChange={e => setEditItem(i => ({ ...i, songUrl: e.target.value }))}
+                                placeholder="Spotify or YouTube link (optional)"
+                                className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
+                            )}
+
+                            {isMusic && editItem.musicType === "song" && (
+                              <input value={editItem.language}
+                                onChange={e => setEditItem(i => ({ ...i, language: e.target.value }))}
+                                placeholder="Language (e.g. Hindi, English, Bengali)"
                                 className="w-full px-4 py-2.5 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground text-sm focus:outline-none" />
                             )}
 
