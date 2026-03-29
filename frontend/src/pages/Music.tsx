@@ -210,7 +210,7 @@ export default function Music() {
 
         {/* Back button */}
         <button
-          onClick={() => setLocation("/#interests")}
+          onClick={() => setLocation("/#interest-music")}
           className="inline-flex items-center gap-2 mb-6 px-3 py-2 rounded-lg border border-white/10 text-sm text-foreground hover:bg-white/5 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back

@@ -60,7 +60,7 @@ export default function FamilyFriends() {
             if (selectedAlbum) {
               setSelectedAlbum(null);
             } else {
-              setLocation("/#interests");
+              setLocation("/#interest-family");
             }
           }}
           className="inline-flex items-center gap-2 mb-6 px-3 py-2 rounded-lg border border-white/10 text-sm text-foreground hover:bg-white/5 transition-colors"
@@ -80,7 +80,7 @@ export default function FamilyFriends() {
           <p className="text-foreground/60">
             {selectedAlbum
               ? selectedAlbum.description || ""
-              : "The people who keep me grounded — my family and my friends"}
+              : "The people who keep me grounded — my family and my college squad."}
           </p>
         </div>
 

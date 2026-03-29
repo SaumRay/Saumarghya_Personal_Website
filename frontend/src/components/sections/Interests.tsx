@@ -24,6 +24,7 @@ export function Interests() {
           
           {/* Gym Block - Large */}
           <motion.div 
+            id="interest-fitness"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -60,6 +61,7 @@ export function Interests() {
 
           {/* Travel Block - Large Portrait */}
           <motion.div 
+            id="interest-traveller"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -97,6 +99,7 @@ export function Interests() {
 
           {/* Music Block */}
           <motion.div 
+            id="interest-music"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -111,6 +114,7 @@ export function Interests() {
 
           {/* Family Block */}
           <motion.div 
+            id="interest-family"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -125,6 +129,7 @@ export function Interests() {
 
           {/* Favourites Block */}
           <motion.div
+            id="interest-favourites"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
