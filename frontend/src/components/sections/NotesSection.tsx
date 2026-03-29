@@ -34,11 +34,17 @@ export function NotesSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/notes`)
-      .then(r => r.json())
-      .then(d => setNotes((d.data || []).slice(0, 3)))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+  fetch(`${API_BASE}/api/notes`)
+    .then(r => {
+      if (!r.ok && r.status !== 304) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(d => setNotes((d.data || []).slice(0, 3)))
+    .catch(err => {
+      console.error("Notes fetch error:", err);
+      setNotes([]); // fail silently, don't crash
+    })
+    .finally(() => setLoading(false));
   }, []);
 
   return (
