@@ -22,7 +22,12 @@ const queryClient = new QueryClient();
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/admin" component={AdminPage} />
+      <Route path="/">
+        <VisitorGate>
+          <Home />
+        </VisitorGate>
+      </Route>
       <Route path="/gallery" component={Gallery} />
       <Route path="/interests" component={InterestCategory} />
       <Route path="/stats" component={Stats} />
@@ -31,7 +36,6 @@ function Router() {
       <Route path="/notes/:id" component={NoteDetail} />
       <Route path="/music" component={Music} />
       <Route path="/favourites" component={Favourites} />
-      <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -44,9 +48,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <VisitorGate>
-                <Router />
-              </VisitorGate>
+              <Router />
             </WouterRouter>
             <Toaster />
           </TooltipProvider>
