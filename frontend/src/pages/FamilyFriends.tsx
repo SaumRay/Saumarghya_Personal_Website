@@ -80,7 +80,7 @@ export default function FamilyFriends() {
           <p className="text-foreground/60">
             {selectedAlbum
               ? selectedAlbum.description || ""
-              : "The people who keep me grounded — my family and my college squad."}
+              : "The people who keep me grounded — my family and my friends."}
           </p>
         </div>
 

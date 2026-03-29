@@ -33,9 +33,10 @@ const educationData = [
     date: "Nov 2020 – May 2024",
     value: "GPA: 8.58/10",
     icon: <BookOpen className="w-5 h-5" />,
-    color: "text-white",
-    bgColor: "bg-white/10",
-    borderColor: "border-white/20"
+    // ✅ was: text-white, bg-white/10, border-white/20
+    color: "text-foreground",
+    bgColor: "bg-foreground/10",
+    borderColor: "border-foreground/20"
   },
   {
     title: "JEE Advanced 2020",
@@ -91,7 +92,8 @@ const educationData = [
 
 export function Education() {
   return (
-    <section id="education" className="py-24 relative bg-black/20">
+    // ✅ was: bg-black/20
+    <section id="education" className="py-24 relative bg-foreground/5">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -102,10 +104,12 @@ export function Education() {
           <h2 className="text-3xl md:text-5xl font-bold mb-4">
             Academic <span className="text-primary">Excellence</span>
           </h2>
-          <p className="text-white/60">A timeline of competitive and academic achievements</p>
+          {/* ✅ was: text-white/60 */}
+          <p className="text-muted-foreground">A timeline of competitive and academic achievements</p>
         </motion.div>
 
-        <div className="relative border-l-2 border-white/10 ml-6 md:ml-12 space-y-12">
+        {/* ✅ was: border-white/10 */}
+        <div className="relative border-l-2 border-foreground/10 ml-6 md:ml-12 space-y-12">
           {educationData.map((item, idx) => (
             <motion.div
               key={idx}
@@ -123,15 +127,17 @@ export function Education() {
                 <div className={`absolute top-0 right-0 w-32 h-32 ${item.bgColor} rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500`} />
 
                 <div className="relative z-10">
-                  {/* Header row */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div>
-                      <h3 className="text-xl md:text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                      {/* ✅ was: text-white */}
+                      <h3 className="text-xl md:text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
                         <span className={item.color}>{item.icon}</span>
                         {item.title}
                       </h3>
-                      {item.subtitle && <p className="text-white/60 mb-2">{item.subtitle}</p>}
-                      {item.date && <p className="text-sm text-white/40 mb-2">{item.date}</p>}
+                      {/* ✅ was: text-white/60 */}
+                      {item.subtitle && <p className="text-muted-foreground mb-2">{item.subtitle}</p>}
+                      {/* ✅ was: text-white/40 */}
+                      {item.date && <p className="text-sm text-foreground/40 mb-2">{item.date}</p>}
                     </div>
 
                     <div className="text-left md:text-right">
@@ -146,7 +152,6 @@ export function Education() {
                     </div>
                   </div>
 
-                  {/* ALOHA achievements table */}
                   {'alohaAchievements' in item && item.alohaAchievements && (
                     <div className="mt-2 rounded-xl overflow-hidden border border-orange-400/20">
                       <table className="w-full text-sm">
@@ -164,8 +169,10 @@ export function Education() {
                               key={i}
                               className="border-t border-orange-400/10 hover:bg-orange-400/5 transition-colors"
                             >
-                              <td className="px-4 py-2 text-white/80 font-medium">{a.year}</td>
-                              <td className="px-4 py-2 text-white/60">{a.level}</td>
+                              {/* ✅ was: text-white/80 */}
+                              <td className="px-4 py-2 text-foreground/80 font-medium">{a.year}</td>
+                              {/* ✅ was: text-white/60 */}
+                              <td className="px-4 py-2 text-muted-foreground">{a.level}</td>
                               <td className="px-4 py-2">
                                 <span className="inline-flex items-center gap-1 text-yellow-400 font-semibold">
                                   🏆 {a.state}
@@ -177,7 +184,8 @@ export function Education() {
                                     🥈 {a.national}
                                   </span>
                                 ) : (
-                                  <span className="text-white/30">—</span>
+                                  // ✅ was: text-white/30
+                                  <span className="text-foreground/30">—</span>
                                 )}
                               </td>
                             </tr>

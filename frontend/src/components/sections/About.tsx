@@ -35,7 +35,6 @@ export function About() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Split bio into paragraphs by newline
   const paragraphs = bio.split("\n").filter(p => p.trim().length > 0);
 
   return (
@@ -48,7 +47,7 @@ export function About() {
           className="mb-16"
         >
           <h2 className="text-3xl md:text-5xl font-bold mb-4">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">My</span> Journey
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/50">My</span> Journey
           </h2>
           <div className="w-24 h-1 bg-gradient-to-r from-primary to-accent rounded-full" />
         </motion.div>
@@ -61,18 +60,17 @@ export function About() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="lg:col-span-7 space-y-6 text-lg text-white/80 leading-relaxed font-medium"
+            className="lg:col-span-7 space-y-6 text-lg text-foreground/80 leading-relaxed font-medium"
           >
             {loading ? (
               <div className="space-y-4 animate-pulse">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-4 bg-white/10 rounded-full" style={{ width: `${85 + Math.random() * 15}%` }} />
+                  <div key={i} className="h-4 bg-foreground/10 rounded-full" style={{ width: `${85 + Math.random() * 15}%` }} />
                 ))}
               </div>
             ) : (
               <>
                 {paragraphs.map((para, index) => {
-                  // Last paragraph gets gradient treatment
                   const isLast = index === paragraphs.length - 1;
                   return (
                     <p
@@ -90,7 +88,7 @@ export function About() {
             )}
           </motion.div>
 
-          {/* Photos — unchanged */}
+          {/* Photos */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -111,8 +109,8 @@ export function About() {
                       <GraduationCap className="text-primary w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">Ambitious</p>
-                      <p className="text-xs text-white/60">MBA Aspirant</p>
+                      <p className="text-sm font-bold text-foreground">Ambitious</p>
+                      <p className="text-xs text-muted-foreground">MBA Aspirant</p>
                     </div>
                   </div>
                 </div>
@@ -130,8 +128,8 @@ export function About() {
                       <Globe className="text-accent w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">Explorer</p>
-                      <p className="text-xs text-white/60">Curious & Adaptive</p>
+                      <p className="text-sm font-bold text-foreground">Explorer</p>
+                      <p className="text-xs text-muted-foreground">Curious & Adaptive</p>
                     </div>
                   </div>
                 </div>

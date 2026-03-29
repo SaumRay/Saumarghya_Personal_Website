@@ -54,7 +54,6 @@ export function Hero() {
               <span className="text-gradient">Saumarghya Ray</span>
             </h1>
 
-            {/* Rotating headline */}
             <div className="flex items-center justify-center lg:justify-start h-10 overflow-hidden">
               <AnimatePresence mode="wait">
                 <motion.p
@@ -125,7 +124,7 @@ export function Hero() {
               <div className="absolute bottom-6 left-6 right-6 z-20 glass-card p-4 rounded-xl flex justify-between items-center transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                 <div>
                   <p className="text-foreground font-bold text-sm">HPE Bengaluru</p>
-                  <p className="text-foreground/60 text-xs">Systems Software QA</p>
+                  <p className="text-muted-foreground text-xs">Systems Software QA</p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                   <div className="w-3 h-3 rounded-full bg-primary animate-ping" />

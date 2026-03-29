@@ -3,7 +3,8 @@ import { Briefcase, Building2, Calendar, Star } from "lucide-react";
 
 export function Experience() {
   return (
-    <section id="experience" className="py-24 relative bg-black/20">
+    // ✅ was: bg-black/20
+    <section id="experience" className="py-24 relative bg-foreground/5">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -24,17 +25,20 @@ export function Experience() {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-3xl blur-xl opacity-20" />
           
-          <div className="glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden border border-white/20">
-            {/* Corner Decorative Element */}
-            <div className="absolute top-0 right-0 bg-gradient-to-bl from-white/10 to-transparent w-48 h-48 rounded-bl-full pointer-events-none" />
+          {/* ✅ was: border-white/20 */}
+          <div className="glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden border border-foreground/20">
+            {/* ✅ was: bg-gradient-to-bl from-white/10 */}
+            <div className="absolute top-0 right-0 bg-gradient-to-bl from-foreground/10 to-transparent w-48 h-48 rounded-bl-full pointer-events-none" />
 
             <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
               <div>
-                <h3 className="text-2xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                {/* ✅ was: text-white */}
+                <h3 className="text-2xl md:text-4xl font-bold text-foreground mb-2 flex items-center gap-3">
                   <Briefcase className="text-primary w-8 h-8" />
                   Systems Software QA Engineer
                 </h3>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-white/70 font-medium">
+                {/* ✅ was: text-white/70 */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-muted-foreground font-medium">
                   <span className="flex items-center gap-2">
                     <Building2 className="w-4 h-4" />
                     Hewlett Packard Enterprise (HPE), Bengaluru
@@ -51,7 +55,8 @@ export function Experience() {
               </span>
             </div>
 
-            <ul className="space-y-4 text-lg text-white/80 leading-relaxed list-none">
+            {/* ✅ was: text-white/80 */}
+            <ul className="space-y-4 text-lg text-foreground/80 leading-relaxed list-none">
               {[
                 "Developed and maintained automated test suites under DTAF for DMF, a storage management solution using Python frameworks and Shell, increasing automation coverage from 57% to 74%.",
                 "Led performance and regression testing initiatives, reviewed test plans, upgraded test clusters, and configured environments using Ansible.",

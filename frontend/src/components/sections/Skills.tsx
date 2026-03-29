@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Code2, Settings, Database, Gavel  } from "lucide-react";
+import { Code2, Settings, Database, Gavel } from "lucide-react";
 
 const skillCategories = [
   {
@@ -32,7 +32,7 @@ export function Skills() {
   return (
     <section id="skills" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -41,7 +41,7 @@ export function Skills() {
           <h2 className="text-3xl md:text-5xl font-bold mb-4">
             Technical <span className="text-gradient">Arsenal</span>
           </h2>
-          <p className="text-white/60 max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-2xl mx-auto">
             A comprehensive toolkit built for scalable automation, software quality, and robust development.
           </p>
         </motion.div>
@@ -54,7 +54,7 @@ export function Skills() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="glass-card p-8 rounded-3xl border border-white/5 hover:border-white/20 transition-all duration-300 group"
+              className="glass-card p-8 rounded-3xl border border-foreground/5 hover:border-foreground/20 transition-all duration-300 group"
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${category.color} text-background shadow-lg`}>
@@ -62,13 +62,13 @@ export function Skills() {
                 </div>
                 <h3 className="text-2xl font-bold">{category.title}</h3>
               </div>
-              
+
               <div className="flex flex-wrap gap-3">
-                {category.skills.map((skill, sIdx) => (
+                {category.skills.map((skill) => (
                   <motion.span
                     key={skill}
                     whileHover={{ scale: 1.05, y: -2 }}
-                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/90 font-medium hover:bg-white/10 hover:border-white/30 transition-all cursor-default"
+                    className="px-4 py-2 rounded-xl bg-foreground/5 border border-foreground/10 text-foreground/90 font-medium hover:bg-foreground/10 hover:border-foreground/30 transition-all cursor-default"
                   >
                     {skill}
                   </motion.span>

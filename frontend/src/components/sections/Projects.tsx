@@ -73,7 +73,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
     >
       <div className="text-cyan-400">{icon}</div>
       <div className="text-2xl font-bold text-foreground">{value}</div>
-      <div className="text-xs text-foreground/50 uppercase tracking-wider">{label}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wider">{label}</div>
     </motion.div>
   );
 }
@@ -85,14 +85,12 @@ export function Projects() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
-  // Derive all unique tech tags
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     projectsData.forEach((p) => p.tech.forEach((t) => tags.add(t)));
     return ["All", ...Array.from(tags).sort()];
   }, []);
 
-  // Filtered projects
   const filteredProjects = useMemo(() => {
     return projectsData.filter((p) => {
       const matchesFilter = activeFilter === "All" || p.tech.includes(activeFilter);
@@ -141,7 +139,7 @@ export function Projects() {
           <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
             Featured <span className="text-accent">Projects</span>
           </h2>
-          <p className="text-foreground/60 max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-2xl mx-auto">
             A showcase of my full-stack capabilities, automation frameworks, and problem-solving implementations.
           </p>
         </motion.div>
@@ -160,7 +158,7 @@ export function Projects() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search projects by name, tech, or description..."
-              className="w-full pl-11 pr-10 py-3 rounded-full bg-foreground/5 border border-foreground/10 text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-sm"
+              className="w-full pl-11 pr-10 py-3 rounded-full bg-foreground/5 border border-foreground/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-sm"
             />
             {searchQuery && (
               <button
@@ -187,7 +185,7 @@ export function Projects() {
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${
                 activeFilter === tag
                   ? "bg-primary text-background border-primary shadow-[0_0_12px_rgba(0,240,255,0.4)]"
-                  : "bg-foreground/5 border-foreground/10 text-foreground/70 hover:border-primary/40 hover:text-foreground"
+                  : "bg-foreground/5 border-foreground/10 text-muted-foreground hover:border-primary/40 hover:text-foreground"
               }`}
             >
               {tag}
@@ -211,6 +209,7 @@ export function Projects() {
                 <div className="p-8 flex flex-col flex-grow">
                   <div className="flex justify-between items-start mb-6">
                     <div className={`p-3 rounded-2xl bg-gradient-to-br ${project.color} bg-opacity-20 backdrop-blur-md`}>
+                      {/* ✅ icon inside gradient bg — white is fine here for contrast */}
                       <Code className="w-6 h-6 text-white" />
                     </div>
                     <a
@@ -225,6 +224,7 @@ export function Projects() {
                   <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-foreground group-hover:to-foreground/50 transition-all">
                     {project.title}
                   </h3>
+                  {/* ✅ was: text-foreground/70 — already good */}
                   <p className="text-foreground/70 mb-6 flex-grow leading-relaxed">{project.desc}</p>
                   <div className="flex flex-wrap gap-2 mt-auto">
                     {project.tech.map((t) => (
@@ -247,10 +247,10 @@ export function Projects() {
             animate={{ opacity: 1 }}
             className="text-center py-20 mb-32"
           >
-            <p className="text-foreground/40 text-lg">No projects found for <span className="text-primary">"{searchQuery || activeFilter}"</span></p>
+            <p className="text-muted-foreground text-lg">No projects found for <span className="text-primary">"{searchQuery || activeFilter}"</span></p>
             <button
               onClick={() => { setSearchQuery(""); setActiveFilter("All"); }}
-              className="mt-4 px-6 py-2 rounded-full text-sm border border-foreground/10 text-foreground/60 hover:text-foreground hover:border-primary/40 transition-all"
+              className="mt-4 px-6 py-2 rounded-full text-sm border border-foreground/10 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
             >
               Clear filters
             </button>
@@ -262,12 +262,14 @@ export function Projects() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-3 bg-foreground/5 border border-foreground/10 rounded-full px-6 py-2 mb-6">
               <Github className="w-5 h-5 text-cyan-400" />
-              <span className="text-foreground/70 text-sm font-medium">Open Source Activity</span>
+              {/* ✅ was: text-foreground/70 — already good */}
+              <span className="text-muted-foreground text-sm font-medium">Open Source Activity</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
               GitHub <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">Stats</span>
             </h2>
-            <p className="text-foreground/50 max-w-xl mx-auto text-sm">Live data pulled directly from GitHub — repos, contributions, and coding streaks.</p>
+            {/* ✅ was: text-foreground/50 */}
+            <p className="text-muted-foreground max-w-xl mx-auto text-sm">Live data pulled directly from GitHub — repos, contributions, and coding streaks.</p>
           </div>
 
           {profile && (
@@ -308,17 +310,20 @@ export function Projects() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: idx * 0.1 }}
-                    className="group block bg-foreground/5 border border-foreground/10 rounded-2xl p-5 hover:border-cyan-500/40 hover:bg-foreground/8 transition-all duration-300"
+                    className="group block bg-foreground/5 border border-foreground/10 rounded-2xl p-5 hover:border-cyan-500/40 hover:bg-foreground/10 transition-all duration-300"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-4 h-4 text-cyan-400 shrink-0" />
                         <span className="font-semibold text-foreground text-sm truncate group-hover:text-cyan-400 transition-colors">{repo.name}</span>
                       </div>
+                      {/* ✅ was: text-foreground/30 — already good */}
                       <ExternalLink className="w-3.5 h-3.5 text-foreground/30 group-hover:text-foreground/70 transition-colors shrink-0 ml-2" />
                     </div>
-                    {repo.description && <p className="text-foreground/50 text-xs mb-4 leading-relaxed line-clamp-2">{repo.description}</p>}
-                    <div className="flex items-center gap-4 text-xs text-foreground/40">
+                    {/* ✅ was: text-foreground/50 */}
+                    {repo.description && <p className="text-muted-foreground text-xs mb-4 leading-relaxed line-clamp-2">{repo.description}</p>}
+                    {/* ✅ was: text-foreground/40 */}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       {repo.language && (
                         <span className="flex items-center gap-1">
                           <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: langColors[repo.language] ?? langColors.Default }} />
@@ -339,7 +344,7 @@ export function Projects() {
               href={`https://github.com/${GITHUB_USERNAME}?tab=repositories`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground/5 border border-foreground/10 text-foreground/70 hover:text-foreground hover:border-cyan-500/40 hover:bg-foreground/10 transition-all duration-300 text-sm font-medium"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground/5 border border-foreground/10 text-muted-foreground hover:text-foreground hover:border-cyan-500/40 hover:bg-foreground/10 transition-all duration-300 text-sm font-medium"
             >
               <Github className="w-4 h-4" /> View All Repositories on GitHub
             </a>
