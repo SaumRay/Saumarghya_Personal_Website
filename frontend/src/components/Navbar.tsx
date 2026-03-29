@@ -13,7 +13,7 @@ const navItems = [
   { name: "Experience", href: "experience", type: "scroll" },
   { name: "Projects",   href: "projects",   type: "scroll" },
   { name: "Interests",  href: "interests",  type: "scroll" },
-  { name: "Notes",      href: "/notes",     type: "navigate" }, // 👈 new
+  { name: "Notes",      href: "notes",      type: "scroll" }, // 👈 new
   { name: "Contact",    href: "contact",    type: "scroll" },
 ];
 
