@@ -18,23 +18,23 @@ interface Note {
 }
 
 const CATEGORY_META: Record<NoteCategory, { emoji: string; label: string; color: string }> = {
-  chemistry:  { emoji: "⚗️", label: "Chemistry",  color: "from-emerald-500 to-teal-500" },
-  cat_prep:   { emoji: "📊", label: "CAT Prep",   color: "from-blue-500 to-cyan-500" },
-  gate_prep:  { emoji: "💻", label: "GATE Prep",  color: "from-violet-500 to-purple-500" },
-  tech:       { emoji: "🔧", label: "Tech",        color: "from-orange-500 to-amber-500" },
-  quizzing:   { emoji: "🧠", label: "Quizzing",   color: "from-pink-500 to-rose-500" },
-  life:       { emoji: "🌱", label: "Life",        color: "from-lime-500 to-green-500" },
-  sports:     { emoji: "🏏", label: "Sports",      color: "from-yellow-500 to-orange-500" },
-  other:      { emoji: "📝", label: "Other",       color: "from-gray-500 to-slate-500" },
+  chemistry: { emoji: "⚗️", label: "Chemistry", color: "from-emerald-500 to-teal-500" },
+  cat_prep:  { emoji: "📊", label: "CAT Prep",  color: "from-blue-500 to-cyan-500" },
+  gate_prep: { emoji: "💻", label: "GATE Prep", color: "from-violet-500 to-purple-500" },
+  tech:      { emoji: "🔧", label: "Tech",       color: "from-orange-500 to-amber-500" },
+  quizzing:  { emoji: "🧠", label: "Quizzing",  color: "from-pink-500 to-rose-500" },
+  life:      { emoji: "🌱", label: "Life",       color: "from-lime-500 to-green-500" },
+  sports:    { emoji: "🏏", label: "Sports",     color: "from-yellow-500 to-orange-500" },
+  other:     { emoji: "📝", label: "Other",      color: "from-gray-500 to-slate-500" },
 };
 
 const DEFAULT_META = { emoji: "📝", label: "Other", color: "from-gray-500 to-slate-500" };
 
 export function NotesSection() {
   const [, setLocation] = useLocation();
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes]   = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError]   = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,12 +45,8 @@ export function NotesSection() {
         const data = Array.isArray(d?.data) ? d.data : [];
         setNotes(data.slice(0, 3));
       })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .catch(() => { if (!cancelled) setError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
@@ -65,24 +61,24 @@ export function NotesSection() {
           viewport={{ once: true }}
           className="mb-16 text-center"
         >
-          <h2 className="text-3xl md:text-5xl font-bold mb-4">
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
             Notes & <span className="text-primary">Posts</span>
           </h2>
-          <p className="text-white/60">Thoughts, learnings, and opinions — written down.</p>
+          <p className="text-foreground/60">Thoughts, learnings, and opinions — written down.</p>
         </motion.div>
 
-        {/* Loading */}
+        {/* Loading skeletons */}
         {loading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="glass-card rounded-3xl h-64 animate-pulse border border-white/5" />
+              <div key={i} className="glass-card rounded-3xl h-64 animate-pulse border border-foreground/5" />
             ))}
           </div>
         )}
 
-        {/* Error state */}
+        {/* Error */}
         {!loading && error && (
-          <div className="glass-card rounded-3xl p-12 border border-white/10 text-white/40 text-center mb-10">
+          <div className="glass-card rounded-3xl p-12 border border-foreground/10 text-foreground/40 text-center mb-10">
             <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
             <p className="text-sm">Could not load posts right now.</p>
           </div>
@@ -106,8 +102,9 @@ export function NotesSection() {
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.1 }}
                   onClick={() => setLocation(`/notes/${note._id}`)}
-                  className="glass-card rounded-3xl border border-white/10 hover:border-white/25 transition-all duration-300 hover:-translate-y-1 overflow-hidden group text-left w-full"
+                  className="glass-card rounded-3xl border border-foreground/10 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1 overflow-hidden group text-left w-full"
                 >
+                  {/* Cover or gradient strip */}
                   {note.coverImageUrl ? (
                     <div className="w-full h-40 overflow-hidden">
                       <img
@@ -121,19 +118,23 @@ export function NotesSection() {
                   )}
 
                   <div className="p-5">
+                    {/* Category badge */}
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${meta.color} text-white mb-3`}>
                       {meta.emoji} {meta.label}
                     </span>
 
-                    <h3 className="font-bold text-white text-lg leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                    {/* Title */}
+                    <h3 className="font-bold text-foreground text-lg leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">
                       {note.title || "Untitled"}
                     </h3>
 
-                    <p className="text-white/50 text-sm line-clamp-2 mb-4">
+                    {/* Preview */}
+                    <p className="text-foreground/50 text-sm line-clamp-2 mb-4">
                       {preview}...
                     </p>
 
-                    <div className="flex items-center justify-between text-white/30 text-xs">
+                    {/* Footer */}
+                    <div className="flex items-center justify-between text-foreground/40 text-xs">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {note.readTimeMinutes || 1} min read
@@ -155,13 +156,13 @@ export function NotesSection() {
 
         {/* Empty state */}
         {!loading && !error && notes.length === 0 && (
-          <div className="glass-card rounded-3xl p-12 border border-white/10 text-white/40 text-center mb-10">
+          <div className="glass-card rounded-3xl p-12 border border-foreground/10 text-foreground/40 text-center mb-10">
             <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
             No posts yet.
           </div>
         )}
 
-        {/* View All */}
+        {/* View All button */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -170,7 +171,7 @@ export function NotesSection() {
         >
           <button
             onClick={() => setLocation("/notes")}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/20 text-white/70 hover:text-white hover:border-primary/50 hover:bg-primary/10 transition-all duration-300 text-sm font-medium"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-foreground/20 text-foreground/70 hover:text-foreground hover:border-primary/50 hover:bg-primary/10 transition-all duration-300 text-sm font-medium"
           >
             <BookOpen className="w-4 h-4" />
             View All Posts

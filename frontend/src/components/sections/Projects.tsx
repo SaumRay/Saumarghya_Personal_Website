@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Github, ExternalLink, Code, Star, GitFork, Users, BookOpen, Activity, Search, X } from "lucide-react";
+import { Github, ExternalLink, Code, Star, GitFork, Users, BookOpen, Activity, Search, X, AlertCircle } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
+import { useTheme } from "@/hooks/use-theme";
 
 const projectsData = [
   {
@@ -78,7 +79,43 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
+// Lazy image with error fallback
+function GitHubImage({ src, alt }: { src: string; alt: string }) {
+  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+
+  return (
+    <div className="w-full flex items-center justify-center min-h-[160px]">
+      {status === "error" ? (
+        <div className="flex flex-col items-center gap-2 text-foreground/30 py-8">
+          <AlertCircle className="w-8 h-8" />
+          <p className="text-xs">Could not load {alt}</p>
+          <a
+            href={`https://github.com/${GITHUB_USERNAME}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-cyan-400 hover:underline"
+          >
+            View on GitHub →
+          </a>
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          className={`w-full max-w-md transition-opacity duration-300 ${status === "loading" ? "opacity-0" : "opacity-100"}`}
+          onLoad={() => setStatus("ok")}
+          onError={() => setStatus("error")}
+        />
+      )}
+    </div>
+  );
+}
+
 export function Projects() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [profile, setProfile] = useState<GitHubProfile | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +162,20 @@ export function Projects() {
     fetchGitHub();
   }, []);
 
+  // ── Theme-aware GitHub stats URLs ────────────────────────────────────────
+  const statsBg     = "00000000"; // always transparent
+  const textColor   = isDark ? "ffffff"  : "1f2937";  // white in dark, gray-800 in light
+  const titleColor  = isDark ? "22d3ee"  : "0891b2";  // cyan-400 dark / cyan-600 light
+  const iconColor   = isDark ? "a855f7"  : "7c3aed";  // purple-500 dark / violet-600 light
+  const ringColor   = isDark ? "22d3ee"  : "0891b2";
+  const fireColor   = isDark ? "a855f7"  : "7c3aed";
+  const labelColor  = isDark ? "ffffff80" : "37415180"; // semi-transparent
+  const dateColor   = isDark ? "ffffff60" : "37415160";
+
+  const statsUrl = `https://github-readme-stats.vercel.app/api?username=${GITHUB_USERNAME}&show_icons=true&theme=default&hide_border=true&bg_color=${statsBg}&title_color=${titleColor}&icon_color=${iconColor}&text_color=${textColor}&rank_icon=github`;
+  const langsUrl  = `https://github-readme-stats.vercel.app/api/top-langs/?username=${GITHUB_USERNAME}&layout=compact&theme=default&hide_border=true&bg_color=${statsBg}&title_color=${titleColor}&text_color=${textColor}&langs_count=8`;
+  const streakUrl = `https://github-readme-streak-stats.herokuapp.com/?user=${GITHUB_USERNAME}&theme=default&hide_border=true&background=${statsBg}&stroke=${isDark ? "ffffff10" : "e5e7eb"}&ring=${ringColor}&fire=${fireColor}&currStreakLabel=${titleColor}&sideLabels=${labelColor}&dates=${dateColor}&currStreakNum=${textColor}&sideNums=${textColor}`;
+
   return (
     <section id="projects" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -155,16 +206,13 @@ export function Projects() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
             <input
               type="text"
+              placeholder="Search projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search projects by name, tech, or description..."
-              className="w-full pl-11 pr-10 py-3 rounded-full bg-foreground/5 border border-foreground/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-sm"
+              className="w-full pl-11 pr-10 py-3 rounded-2xl bg-foreground/5 border border-foreground/10 text-foreground text-sm placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
             {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground transition-colors"
-              >
+              <button onClick={() => setSearchQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -176,16 +224,16 @@ export function Projects() {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-12 flex flex-wrap gap-2 justify-center"
+          className="flex flex-wrap gap-2 justify-center mb-12"
         >
           {allTags.map((tag) => (
             <button
               key={tag}
-              onClick={() => setActiveFilter(tag)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${
+              onClick={() => { setActiveFilter(tag); setSearchQuery(""); }}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all ${
                 activeFilter === tag
-                  ? "bg-primary text-background border-primary shadow-[0_0_12px_rgba(0,240,255,0.4)]"
-                  : "bg-foreground/5 border-foreground/10 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  ? "bg-primary/20 text-primary border-primary/30"
+                  : "bg-foreground/5 text-foreground/60 border-foreground/10 hover:border-primary/30 hover:text-primary"
               }`}
             >
               {tag}
@@ -193,13 +241,13 @@ export function Projects() {
           ))}
         </motion.div>
 
-        {/* Project Cards */}
+        {/* Projects grid */}
         {filteredProjects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-32">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-32">
             {filteredProjects.map((project, idx) => (
               <motion.div
                 key={project.title}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
@@ -209,7 +257,6 @@ export function Projects() {
                 <div className="p-8 flex flex-col flex-grow">
                   <div className="flex justify-between items-start mb-6">
                     <div className={`p-3 rounded-2xl bg-gradient-to-br ${project.color} bg-opacity-20 backdrop-blur-md`}>
-                      {/* ✅ icon inside gradient bg — white is fine here for contrast */}
                       <Code className="w-6 h-6 text-white" />
                     </div>
                     <a
@@ -224,7 +271,6 @@ export function Projects() {
                   <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-foreground group-hover:to-foreground/50 transition-all">
                     {project.title}
                   </h3>
-                  {/* ✅ was: text-foreground/70 — already good */}
                   <p className="text-foreground/70 mb-6 flex-grow leading-relaxed">{project.desc}</p>
                   <div className="flex flex-wrap gap-2 mt-auto">
                     {project.tech.map((t) => (
@@ -247,7 +293,9 @@ export function Projects() {
             animate={{ opacity: 1 }}
             className="text-center py-20 mb-32"
           >
-            <p className="text-muted-foreground text-lg">No projects found for <span className="text-primary">"{searchQuery || activeFilter}"</span></p>
+            <p className="text-muted-foreground text-lg">
+              No projects found for <span className="text-primary">"{searchQuery || activeFilter}"</span>
+            </p>
             <button
               onClick={() => { setSearchQuery(""); setActiveFilter("All"); }}
               className="mt-4 px-6 py-2 rounded-full text-sm border border-foreground/10 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
@@ -262,14 +310,14 @@ export function Projects() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-3 bg-foreground/5 border border-foreground/10 rounded-full px-6 py-2 mb-6">
               <Github className="w-5 h-5 text-cyan-400" />
-              {/* ✅ was: text-foreground/70 — already good */}
               <span className="text-muted-foreground text-sm font-medium">Open Source Activity</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
               GitHub <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">Stats</span>
             </h2>
-            {/* ✅ was: text-foreground/50 */}
-            <p className="text-muted-foreground max-w-xl mx-auto text-sm">Live data pulled directly from GitHub — repos, contributions, and coding streaks.</p>
+            <p className="text-muted-foreground max-w-xl mx-auto text-sm">
+              Live data pulled directly from GitHub — repos, contributions, and coding streaks.
+            </p>
           </div>
 
           {profile && (
@@ -281,19 +329,38 @@ export function Projects() {
             </motion.div>
           )}
 
+          {/* Stats + Languages images */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="rounded-2xl overflow-hidden border border-foreground/10 bg-foreground/5 p-4 flex items-center justify-center">
-              <img src={`https://github-readme-stats.vercel.app/api?username=${GITHUB_USERNAME}&show_icons=true&theme=radical&hide_border=true&bg_color=00000000&title_color=22d3ee&icon_color=a855f7&text_color=ffffff&rank_icon=github`} alt="GitHub Stats" className="w-full max-w-md" loading="lazy" />
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="rounded-2xl overflow-hidden border border-foreground/10 bg-foreground/5 p-4"
+            >
+              <GitHubImage src={statsUrl} alt="GitHub Stats" />
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="rounded-2xl overflow-hidden border border-foreground/10 bg-foreground/5 p-4 flex items-center justify-center">
-              <img src={`https://github-readme-stats.vercel.app/api/top-langs/?username=${GITHUB_USERNAME}&layout=compact&theme=radical&hide_border=true&bg_color=00000000&title_color=22d3ee&text_color=ffffff&langs_count=8`} alt="Top Languages" className="w-full max-w-md" loading="lazy" />
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="rounded-2xl overflow-hidden border border-foreground/10 bg-foreground/5 p-4"
+            >
+              <GitHubImage src={langsUrl} alt="Top Languages" />
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="rounded-2xl overflow-hidden border border-foreground/10 bg-foreground/5 p-4 flex items-center justify-center mb-12">
-            <img src={`https://github-readme-streak-stats.herokuapp.com/?user=${GITHUB_USERNAME}&theme=radical&hide_border=true&background=00000000&stroke=ffffff10&ring=22d3ee&fire=a855f7&currStreakLabel=22d3ee&sideLabels=ffffff80&dates=ffffff60&currStreakNum=ffffff&sideNums=ffffff`} alt="GitHub Streak" className="w-full max-w-2xl" loading="lazy" />
+          {/* Streak */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="rounded-2xl overflow-hidden border border-foreground/10 bg-foreground/5 p-4 mb-12"
+          >
+            <GitHubImage src={streakUrl} alt="GitHub Streak" />
           </motion.div>
 
+          {/* Recent repos */}
           {!loading && repos.length > 0 && (
             <div>
               <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
@@ -317,12 +384,11 @@ export function Projects() {
                         <BookOpen className="w-4 h-4 text-cyan-400 shrink-0" />
                         <span className="font-semibold text-foreground text-sm truncate group-hover:text-cyan-400 transition-colors">{repo.name}</span>
                       </div>
-                      {/* ✅ was: text-foreground/30 — already good */}
                       <ExternalLink className="w-3.5 h-3.5 text-foreground/30 group-hover:text-foreground/70 transition-colors shrink-0 ml-2" />
                     </div>
-                    {/* ✅ was: text-foreground/50 */}
-                    {repo.description && <p className="text-muted-foreground text-xs mb-4 leading-relaxed line-clamp-2">{repo.description}</p>}
-                    {/* ✅ was: text-foreground/40 */}
+                    {repo.description && (
+                      <p className="text-muted-foreground text-xs mb-4 leading-relaxed line-clamp-2">{repo.description}</p>
+                    )}
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       {repo.language && (
                         <span className="flex items-center gap-1">
