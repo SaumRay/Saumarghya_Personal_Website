@@ -28,23 +28,30 @@ const CATEGORY_META: Record<NoteCategory, { emoji: string; label: string; color:
   other:      { emoji: "📝", label: "Other",       color: "from-gray-500 to-slate-500" },
 };
 
+const DEFAULT_META = { emoji: "📝", label: "Other", color: "from-gray-500 to-slate-500" };
+
 export function NotesSection() {
   const [, setLocation] = useLocation();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-  fetch(`${API_BASE}/api/notes`)
-    .then(r => {
-      if (!r.ok && r.status !== 304) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    })
-    .then(d => setNotes((d.data || []).slice(0, 3)))
-    .catch(err => {
-      console.error("Notes fetch error:", err);
-      setNotes([]); // fail silently, don't crash
-    })
-    .finally(() => setLoading(false));
+    let cancelled = false;
+    fetch(`${API_BASE}/api/notes`)
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled) return;
+        const data = Array.isArray(d?.data) ? d.data : [];
+        setNotes(data.slice(0, 3));
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -64,20 +71,33 @@ export function NotesSection() {
           <p className="text-white/60">Thoughts, learnings, and opinions — written down.</p>
         </motion.div>
 
-        {/* Loading skeletons */}
+        {/* Loading */}
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="glass-card rounded-3xl h-64 animate-pulse border border-white/5" />
             ))}
           </div>
         )}
 
-        {/* Notes grid — top 3 */}
-        {!loading && notes.length > 0 && (
+        {/* Error state */}
+        {!loading && error && (
+          <div className="glass-card rounded-3xl p-12 border border-white/10 text-white/40 text-center mb-10">
+            <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="text-sm">Could not load posts right now.</p>
+          </div>
+        )}
+
+        {/* Notes grid */}
+        {!loading && !error && notes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
             {notes.map((note, idx) => {
-              const meta = CATEGORY_META[note.category] ?? CATEGORY_META["other"];
+              if (!note?._id) return null;
+              const meta = CATEGORY_META[note.category] ?? DEFAULT_META;
+              const preview = typeof note.content === "string"
+                ? note.content.replace(/[#*`>\-]/g, "").slice(0, 120)
+                : "";
+
               return (
                 <motion.button
                   key={note._id}
@@ -88,12 +108,11 @@ export function NotesSection() {
                   onClick={() => setLocation(`/notes/${note._id}`)}
                   className="glass-card rounded-3xl border border-white/10 hover:border-white/25 transition-all duration-300 hover:-translate-y-1 overflow-hidden group text-left w-full"
                 >
-                  {/* Cover image or gradient header */}
                   {note.coverImageUrl ? (
                     <div className="w-full h-40 overflow-hidden">
                       <img
                         src={note.coverImageUrl}
-                        alt={note.title}
+                        alt={note.title || "Note"}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>
@@ -102,31 +121,29 @@ export function NotesSection() {
                   )}
 
                   <div className="p-5">
-                    {/* Category badge */}
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${meta.color} text-white mb-3`}>
                       {meta.emoji} {meta.label}
                     </span>
 
-                    {/* Title */}
                     <h3 className="font-bold text-white text-lg leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">
-                      {note.title}
+                      {note.title || "Untitled"}
                     </h3>
 
-                    {/* Preview */}
                     <p className="text-white/50 text-sm line-clamp-2 mb-4">
-                      {note.content.replace(/[#*`>\-]/g, "").slice(0, 120)}...
+                      {preview}...
                     </p>
 
-                    {/* Meta */}
                     <div className="flex items-center justify-between text-white/30 text-xs">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {note.readTimeMinutes} min read
+                        {note.readTimeMinutes || 1} min read
                       </span>
                       <span>
-                        {new Date(note.createdAt).toLocaleDateString("en-IN", {
-                          day: "numeric", month: "short", year: "numeric"
-                        })}
+                        {note.createdAt
+                          ? new Date(note.createdAt).toLocaleDateString("en-IN", {
+                              day: "numeric", month: "short", year: "numeric"
+                            })
+                          : ""}
                       </span>
                     </div>
                   </div>
@@ -137,14 +154,14 @@ export function NotesSection() {
         )}
 
         {/* Empty state */}
-        {!loading && notes.length === 0 && (
+        {!loading && !error && notes.length === 0 && (
           <div className="glass-card rounded-3xl p-12 border border-white/10 text-white/40 text-center mb-10">
             <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
             No posts yet.
           </div>
         )}
 
-        {/* View All button */}
+        {/* View All */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
