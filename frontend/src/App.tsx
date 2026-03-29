@@ -8,6 +8,7 @@ import Gallery from "@/pages/Gallery";
 import AdminPage from "@/pages/admin/AdminPage";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AdminAuthProvider } from "@/hooks/use-admin-auth";
+import { VisitorGate } from "@/components/VisitorGate";
 import InterestCategory from "@/pages/InterestCategory";
 import Stats from "@/pages/Stats";
 import FamilyFriends from "@/pages/FamilyFriends";
@@ -43,7 +44,9 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
+              <VisitorGate>
+                <Router />
+              </VisitorGate>
             </WouterRouter>
             <Toaster />
           </TooltipProvider>

@@ -12,6 +12,7 @@ import { AdminCategoryDetails } from "./tabs/AdminCategoryDetails";
 import { AdminFamilyFriends } from "./tabs/AdminFamilyFriends";
 import AdminMusic from "./tabs/AdminMusic";
 import { AdminFavourites } from "./tabs/AdminFavourites";
+import { AdminVisitors } from "./tabs/AdminVisitors";
 
 export default function AdminPage() {
   const { isAuthed } = useAdminAuth();
@@ -29,6 +30,7 @@ export default function AdminPage() {
       case "familyFriends":   return <AdminFamilyFriends />;
       case "notes":           return <AdminNotes />;
       case "favourites": return <AdminFavourites />;
+      case "visitors":   return <AdminVisitors />;
       case "profile":         return <AdminProfile />;
       case "music":           return <AdminMusic />;
     }

@@ -17,6 +17,7 @@ import notesRoutes from "./routes/notes";
 import categoryDetailRoutes from "./routes/categoryDetails";
 import musicRoutes from "./routes/music";
 import favouriteRoutes from "./routes/favourites";
+import visitorRoutes from "./routes/Visitors";
 import { seedDefaults } from "./controllers/favouriteController";
 
 const app = express();
@@ -62,6 +63,7 @@ app.use("/api/notes", notesRoutes);
 app.use("/api/category-details", categoryDetailRoutes);
 app.use("/api/music", musicRoutes);
 app.use("/api/favourites", favouriteRoutes);
+app.use("/api/visitors", visitorRoutes);
 
 app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found" }));
 
@@ -71,7 +73,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 connectDB().then(async () => {
-  await seedDefaults(); 
+  await seedDefaults();
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
