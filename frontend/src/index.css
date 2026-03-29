@@ -26,11 +26,14 @@
   --animate-gradient-x: gradient-x 15s ease infinite;
 }
 
+/* ========================
+   DARK MODE (default)
+   ======================== */
 :root,
 [data-theme="dark"] {
   --background: 240 60% 4%;
   --foreground: 0 0% 100%;
-  --primary: 190 100% 50%; 
+  --primary: 190 100% 50%;
   --primary-foreground: 240 60% 4%;
   --secondary: 260 100% 60%;
   --secondary-foreground: 0 0% 100%;
@@ -46,21 +49,24 @@
   --card-foreground: 0 0% 100%;
 }
 
+/* ========================
+   LIGHT MODE
+   ======================== */
 [data-theme="light"] {
   --background: 220 30% 96%;
   --foreground: 240 60% 8%;
-  --primary: 190 90% 38%;
+  --primary: 190 90% 35%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 260 80% 52%;
+  --secondary: 260 80% 48%;
   --secondary-foreground: 0 0% 100%;
   --muted: 220 20% 88%;
-  --muted-foreground: 240 15% 40%;
-  --accent: 320 90% 44%;
+  --muted-foreground: 240 15% 35%;
+  --accent: 320 90% 40%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 220 20% 80%;
-  --ring: 190 90% 38%;
+  --border: 220 20% 75%;
+  --ring: 190 90% 35%;
   --card: 0 0% 100%;
   --card-foreground: 240 60% 8%;
 }
@@ -71,10 +77,12 @@
     radial-gradient(circle at 85% 30%, rgba(200, 0, 80, 0.06), transparent 25%);
 }
 
+/* ✅ KEY FIX: Light mode glass-card gets solid white background with shadow */
 [data-theme="light"] .glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
 }
 
 [data-theme="light"] ::-webkit-scrollbar-track {
@@ -87,13 +95,13 @@
 
 @layer base {
   html {
-    overflow-x: hidden;  
+    overflow-x: hidden;
     scroll-behavior: smooth;
   }
 
   body {
     @apply bg-background text-foreground antialiased font-sans overflow-x-hidden;
-    background-image: 
+    background-image:
       radial-gradient(circle at 15% 50%, rgba(0, 240, 255, 0.08), transparent 25%),
       radial-gradient(circle at 85% 30%, rgba(255, 0, 60, 0.08), transparent 25%);
     background-attachment: fixed;
@@ -102,10 +110,6 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     @apply tracking-tight font-bold;
-  }
-
-  html {
-    scroll-behavior: smooth;
   }
 }
 
@@ -125,6 +129,7 @@
   @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent animate-gradient-x bg-[length:200%_auto];
 }
 
+/* ✅ Dark mode glass-card (default) */
 .glass-card {
   @apply bg-card/40 backdrop-blur-xl border border-white/10 shadow-2xl;
 }
