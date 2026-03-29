@@ -77,12 +77,54 @@
     radial-gradient(circle at 85% 30%, rgba(200, 0, 80, 0.06), transparent 25%);
 }
 
-/* ✅ KEY FIX: Light mode glass-card gets solid white background with shadow */
+/* ✅ Light mode glass-card — white background with shadow */
 [data-theme="light"] .glass-card {
   background: rgba(255, 255, 255, 0.92) !important;
   border-color: rgba(0, 0, 0, 0.08) !important;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(12px);
+}
+
+/* ✅ Fix: hardcoded text-white inside glass-cards becomes dark in light mode */
+[data-theme="light"] .glass-card h3,
+[data-theme="light"] .glass-card h2,
+[data-theme="light"] .glass-card p,
+[data-theme="light"] .glass-card span:not([class*="text-"]),
+[data-theme="light"] .glass-card .text-white {
+  color: hsl(240 60% 8%) !important;
+}
+
+/* ✅ Fix: text-white/70, text-white/80, text-white/60 inside glass-cards */
+[data-theme="light"] .glass-card .text-white\/70,
+[data-theme="light"] .glass-card .text-white\/80,
+[data-theme="light"] .glass-card .text-white\/60,
+[data-theme="light"] .glass-card .text-white\/50,
+[data-theme="light"] .glass-card .text-white\/30,
+[data-theme="light"] .glass-card .text-white\/40 {
+  color: hsl(240 60% 8% / 0.6) !important;
+}
+
+/* ✅ Fix: bg-white/5, bg-white/10 inside glass-cards in light mode */
+[data-theme="light"] .glass-card .bg-white\/5,
+[data-theme="light"] .glass-card .bg-white\/10,
+[data-theme="light"] .glass-card .bg-white\/20 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ✅ Fix: border-white/10 inside glass-cards in light mode */
+[data-theme="light"] .glass-card .border-white\/10,
+[data-theme="light"] .glass-card .border-white\/20,
+[data-theme="light"] .glass-card .border-white\/25 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ✅ Fix: hover:bg-white/10 — handled via opacity so no override needed */
+
+/* ✅ Fix GitHub stats/streak images — add light bg so transparent bg looks correct */
+[data-theme="light"] .github-stat-img-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 1rem;
+  padding: 1rem;
 }
 
 [data-theme="light"] ::-webkit-scrollbar-track {
