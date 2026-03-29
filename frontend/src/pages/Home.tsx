@@ -8,7 +8,7 @@ import { CharacterCard } from "@/components/sections/CharacterCard";
 import { Experience } from "@/components/sections/Experience";
 import { Projects } from "@/components/sections/Projects";
 import { Interests } from "@/components/sections/Interests";
-import { NotesSection } from "@/components/sections/NotesSection";
+//import { NotesSection } from "@/components/sections/NotesSection";
 import { Contact } from "@/components/sections/Contact";
 import { Footer } from "@/components/Footer";
 
@@ -39,7 +39,7 @@ export default function Home() {
         <Experience />
         <Projects />
         <Interests />
-        <NotesSection />
+        {/* <NotesSection /> */}
         <Contact />
       </main>
       <Footer />
