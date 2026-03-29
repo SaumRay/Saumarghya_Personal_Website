@@ -3,22 +3,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
+import { useLocation } from "wouter";
 
 const navItems = [
-  { name: "Home", href: "home" },
-  { name: "About", href: "about" },
-  { name: "Education", href: "education" },
-  { name: "Skills", href: "skills" },
-  { name: "Experience", href: "experience" },
-  { name: "Projects", href: "projects" },
-  { name: "Interests", href: "interests" },
-  { name: "Contact", href: "contact" },
+  { name: "Home",       href: "home",       type: "scroll" },
+  { name: "About",      href: "about",      type: "scroll" },
+  { name: "Education",  href: "education",  type: "scroll" },
+  { name: "Skills",     href: "skills",     type: "scroll" },
+  { name: "Experience", href: "experience", type: "scroll" },
+  { name: "Projects",   href: "projects",   type: "scroll" },
+  { name: "Interests",  href: "interests",  type: "scroll" },
+  { name: "Notes",      href: "/notes",     type: "navigate" }, // 👈 new
+  { name: "Contact",    href: "contact",    type: "scroll" },
 ];
 
 export function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled]           = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme }            = useTheme();
+  const [, setLocation]                   = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -31,11 +34,20 @@ export function Navbar() {
     setTimeout(() => {
       const el = document.getElementById(id);
       if (el) {
-        const offset = 80; // navbar height
+        const offset = 80;
         const top = el.getBoundingClientRect().top + window.scrollY - offset;
         window.scrollTo({ top, behavior: "smooth" });
       }
-    }, 100); // small delay lets mobile menu close first
+    }, 100);
+  };
+
+  const handleNavClick = (item: typeof navItems[0]) => {
+    setMobileMenuOpen(false);
+    if (item.type === "navigate") {
+      setLocation(item.href);
+    } else {
+      scrollToSection(item.href);
+    }
   };
 
   return (
@@ -63,7 +75,7 @@ export function Navbar() {
             {navItems.map((item) => (
               <button
                 key={item.name}
-                onClick={() => scrollToSection(item.href)}
+                onClick={() => handleNavClick(item)}
                 className="px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground rounded-lg hover:bg-foreground/5 transition-colors"
               >
                 {item.name}
@@ -78,23 +90,11 @@ export function Navbar() {
             >
               <AnimatePresence mode="wait" initial={false}>
                 {theme === "dark" ? (
-                  <motion.span
-                    key="sun"
-                    initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
                     <Sun className="w-4 h-4 text-yellow-400" />
                   </motion.span>
                 ) : (
-                  <motion.span
-                    key="moon"
-                    initial={{ rotate: 90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: -90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
                     <Moon className="w-4 h-4 text-primary" />
                   </motion.span>
                 )}
@@ -145,7 +145,7 @@ export function Navbar() {
               {navItems.map((item) => (
                 <button
                   key={item.name}
-                  onClick={() => scrollToSection(item.href)}
+                  onClick={() => handleNavClick(item)}
                   className="text-left text-lg font-medium text-foreground/80 hover:text-primary transition-colors"
                 >
                   {item.name}

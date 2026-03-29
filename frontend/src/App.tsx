@@ -11,8 +11,8 @@ import { AdminAuthProvider } from "@/hooks/use-admin-auth";
 import InterestCategory from "@/pages/InterestCategory";
 import Stats from "@/pages/Stats";
 import FamilyFriends from "@/pages/FamilyFriends";
-import Music from "./pages/Music";
-import Favourites from "@/pages/Favourites";
+import Notes from "@/pages/Notes";
+import NoteDetail from "@/pages/NoteDetail";
 
 const queryClient = new QueryClient();
 
@@ -24,8 +24,8 @@ function Router() {
       <Route path="/interests" component={InterestCategory} />
       <Route path="/stats" component={Stats} />
       <Route path="/family-friends" component={FamilyFriends} />
-      <Route path="/music" component={Music} />
-      <Route path="/favourites" component={Favourites} />
+      <Route path="/notes" component={Notes} />
+      <Route path="/notes/:id" component={NoteDetail} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
