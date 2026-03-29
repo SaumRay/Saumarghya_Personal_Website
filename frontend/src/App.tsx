@@ -13,6 +13,8 @@ import Stats from "@/pages/Stats";
 import FamilyFriends from "@/pages/FamilyFriends";
 import Notes from "@/pages/Notes";
 import NoteDetail from "@/pages/NoteDetail";
+import Music from "@/pages/Music";
+import Favourites from "@/pages/Favourites";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +28,8 @@ function Router() {
       <Route path="/family-friends" component={FamilyFriends} />
       <Route path="/notes" component={Notes} />
       <Route path="/notes/:id" component={NoteDetail} />
+      <Route path="/music" component={Music} />
+      <Route path="/favourites" component={Favourites} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
