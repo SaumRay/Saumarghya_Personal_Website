@@ -59,7 +59,16 @@ export default function Notes() {
       <div className="max-w-4xl mx-auto">
 
         <button
-          onClick={() => setLocation("/")}
+          onClick={() => {
+            setLocation("/");
+            setTimeout(() => {
+               const el = document.getElementById("notes");
+               if (el) {
+                const top = el.getBoundingClientRect().top + window.scrollY - 80;
+                window.scrollTo({ top, behavior: "smooth" });
+            }
+        }, 300);
+    }}
           className="inline-flex items-center gap-2 mb-6 px-3 py-2 rounded-lg border border-white/10 text-sm text-foreground hover:bg-white/5 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back
