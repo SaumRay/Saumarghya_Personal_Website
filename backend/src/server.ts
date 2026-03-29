@@ -17,7 +17,7 @@ import notesRoutes from "./routes/notes";
 import categoryDetailRoutes from "./routes/categoryDetails";
 import musicRoutes from "./routes/music";
 import favouriteRoutes from "./routes/favourites";
-import visitorRoutes from "./routes/Visitors";
+import visitorRoutes from "./routes/visitors";
 import { seedDefaults } from "./controllers/favouriteController";
 
 const app = express();
